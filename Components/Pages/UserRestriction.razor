@@ -1,0 +1,164 @@
+﻿@page "/UserRestriction"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Models;
+@using SAPPortal.Components.Services;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms;
+@using Microsoft.EntityFrameworkCore;
+@inject HttpClient Http;
+@inject IJSRuntime JsRuntime;
+@inject ApplicationDbContext _dbContext;
+@inject ApplicationDbContext _dbContext1;
+@rendermode InteractiveServer
+
+<EditForm Model="@user" OnValidSubmit="GivePermission" FormName="myForm11">
+    <div class="form-group mb-3">
+        <label for="userRole">User</label>
+        <select id="userId" class="form-control" @bind="user.UserId">
+            <option value="">-- Select a User --</option>
+            @foreach (var user in lstUsers)
+            {
+                <option @onchange="fillUser" value="@user.UserId">@user.UserName</option>
+            }
+        </select>
+    </div>
+</EditForm>
+
+<div class="row">
+    <div class="col-12 p-0">
+        @if (lstMenus != null && lstMenus.Count > 0)
+        {
+            <div style="overflow-y: auto; height: 400px; border: 1px solid black;">
+                <table class="table" style="width: 100%; margin-bottom: 0; border-collapse: separate; border-spacing: 0;">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th style="position: sticky; top: 0; background-color: #343a40; z-index: 1;">FormId</th>
+                            <th style="position: sticky; top: 0; background-color: #343a40; z-index: 1;">FormName</th>
+                            <th style="position: sticky; top: 0; background-color: #343a40; z-index: 1;">Accessibility</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var master in lstMenus)
+                        {
+                            <tr>
+                                <td>@master.Id</td>
+                                <td>@master.FormName</td>
+                                <td>
+                                    <input type="checkbox" @bind="@master.IsAccessibleBool" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p>No data available.</p>
+        }
+    </div>
+</div>
+
+<button type="button" style="width:100%; background-color: #052767; color: #ffffff; padding: 7px 18px; font-size: 18px;" class="btn mt-3 mb-2" @onclick="GivePermission">
+    Give Permission
+</button>
+
+@code {
+    protected M_User user = new M_User();
+    public static string username1 = string.Empty;
+    private int userId = 0;
+    List<MenuMapUser> lstMenuMapUsers = new List<MenuMapUser>();
+    List<Menu> lstMenus = new List<Menu>();
+    List<M_User> lstUsers = new List<M_User>();
+    string searchTerm = string.Empty;
+    MenuMapUser newMenuMapUser = new MenuMapUser();
+
+    private async Task GivePermission()
+    {
+        if (user.UserId == 0)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Please select a user.");
+            return;
+        }
+        var existingPermissions = await _dbContext.MenuMapUsers
+            .Where(m => m.UserId == user.UserId)
+            .ToListAsync();
+        _dbContext.MenuMapUsers.RemoveRange(existingPermissions);
+
+        foreach (var menu in lstMenus)
+        {
+            var newMenuMapUser = new MenuMapUser
+                {
+                    UserId = user.UserId,
+                    FormId = menu.Id,
+                    FormName = menu.FormName,
+                    IsAccessable = menu.IsAccessibleBool ? 'Y' : 'N'
+                };
+
+            _dbContext.MenuMapUsers.Add(newMenuMapUser);
+        }
+
+        await _dbContext.SaveChangesAsync();
+        await JsRuntime.InvokeVoidAsync("alert", "Permissions updated successfully");
+        ResetForm();
+    }
+
+    private void fillUser(ChangeEventArgs e)
+    {
+        if (user.UserId > 0)
+        {
+            searchTerm = e.Value.ToString();
+            var result = _dbContext.AS_M_Users
+                .Where(u => u.UserName == searchTerm)
+                .ToList();
+
+            if (result.Any())
+            {
+                username1 = result.First().UserName;
+                user.UserName = username1; 
+            }
+        }
+    }
+
+    // private async Task getForm()
+    // {
+    //     lstMenus = await _dbContext1.Menus
+    //         .AsNoTracking()
+    //         .Select(m => new Menu
+    //             {
+    //                 Id = m.Id,
+    //                 FormName = m.FormName,
+    //                 IsAccessable = m.IsAccessable
+    //             })
+    //         .ToListAsync();
+
+    //     foreach (var menu in lstMenus)
+    //     {
+    //         menu.IsAccessibleBool = menu.IsAccessable == "Y";
+    //     }  
+    // }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((CommonSessionClass.UName) == String.Empty || CommonSessionClass.UName == null)
+        {
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+       // await getForm();
+            lstUsers = await _dbContext.AS_M_Users
+         .AsNoTracking()
+         .Select(c => new M_User { UserId = c.UserId, UserName = c.UserName, PWD = c.PWD })
+         .ToListAsync();
+        }       
+    }
+    private void ResetForm()
+    {
+        newMenuMapUser = new MenuMapUser();
+        lstUsers.Clear();
+        lstMenus.Clear();
+        lstMenuMapUsers.Clear();
+
+    }
+}

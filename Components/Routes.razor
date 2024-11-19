@@ -1,0 +1,21 @@
+﻿@using SAPPortal.Models
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        @if (CommonSessionClass.IsAuthenticated)
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
+        }
+        else
+        {
+            <RouteView RouteData="@routeData" DefaultLayout="null" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        }
+    </Found>
+    <NotFound>
+        <h1>Page Not Found</h1>
+        <p>Sorry, there's nothing at this address.</p>
+    </NotFound>
+</Router>
+
+

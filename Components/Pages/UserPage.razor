@@ -1,0 +1,395 @@
+﻿@page "/UserPage"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Components.Services
+@using SAPPortal.Models;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject ApplicationDbContext _dbContext
+@rendermode InteractiveServer
+@inject IHttpContextAccessor HttpContextAccessor
+@using System.ComponentModel.DataAnnotations
+@inject SAPConnection AppConfig
+<PageTitle>User Page</PageTitle>
+
+<h3>User Page</h3>
+
+<EditForm Model="@user" OnValidSubmit="AddUser" FormName="myForm11">
+    <div class="form-row">
+        <div class="col-3">
+            <label for="userName">User Name</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.UserName" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="password">Password</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.PWD" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="firstName">First Name</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.FirstName" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="lastName">Last Name</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.LastName" class="form-control" />
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="col-3">
+            <label for="contactNo1">Contact No1</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.ContactNo1" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="contactNo2">Contact No2</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.ContactNo2" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="email">Email</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.Email" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="address1">Address 1</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.Address1" class="form-control" />
+            </div>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="col-3">
+            <label for="address2">Address 2</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.Address2" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="pin">Pin</label>
+            <div class="form-group">
+                <InputText @bind-Value="user.Pin" class="form-control" />
+            </div>
+        </div>
+        <div class="col-3">
+            <label for="userGroup">User Group</label>
+            <select id="userGroupId" class="form-control" @bind="user.GroupId">
+                <option value="">-- Select a User Group --</option>
+                @foreach (var uSERGROUP in lstUserGroups)
+                {
+                    <option @onchange="fillUserGroup" value="@uSERGROUP.GroupId">@uSERGROUP.GroupName</option>
+                }
+            </select>
+        </div>
+    </div>
+    <div class="col-md-4 mt-3">
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">@ButtonTitle</button>
+            <button type="button" class="btn btn-secondary" @onclick="ResetForm">Cancel</button>
+        </div>
+    </div>
+</EditForm>
+
+
+<br />
+<div class="container-fluid">
+    @if (lstUsers == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle table-bordered text-center">
+            <thead class="table-success">
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Password</th>
+                    <th>FirstName</th>
+                    <th>LastName</th>
+                    <th>ContactNo1</th>
+                    <th>ContactNo2</th>
+                    <th>Email</th>
+                    <th>Address1</th>
+                    <th>Address2</th>
+                    <th>Pin</th>
+                    <th>User Group</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sc in lstUsers)
+                {
+                    <tr>
+                        <td>@sc.UserId</td>
+                        <td>@sc.UserName</td>
+                        <td>@sc.PWD</td>
+                        <td>@sc.FirstName</td>
+                        <td>@sc.LastName</td>
+                        <td>@sc.ContactNo1</td>
+                        <td>@sc.ContactNo2</td>
+                        <td>@sc.Email</td>
+                        <td>@sc.Address1</td>
+                        <td>@sc.Address2</td>
+                        <td>@sc.Pin</td>
+                        <td>
+                            @lstUserGroups.Where(m => m.GroupId == sc.GroupId).FirstOrDefault()?.GroupName
+                        </td>
+                        <td>
+                            <button class="btn btn-outline-danger" @onclick="() => EditData(sc)">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+@code {
+    private M_User user = new M_User();
+    List<M_User> lstUsers = new List<M_User>();
+    List<M_User> lstUsers1 = new List<M_User>();
+    private M_USERGROUP userGroup = new M_USERGROUP();
+    List<M_USERGROUP> lstUserGroups = new List<M_USERGROUP>();
+    string searchTerm = string.Empty;
+    int intSapId = 0;
+    public string? ButtonTitle { get; set; }
+    private async void AddUser()
+    {
+        if (user.UserId > 0)
+        {
+            try
+            {
+                var existingUser = await _dbContext.AS_M_Users.FindAsync(user.UserId);
+                if (existingUser != null)
+                {
+                    existingUser.UserId = user.UserId;
+                    existingUser.UserName = user.UserName ?? user.UserName;
+                    existingUser.PWD = user.PWD ?? user.PWD;
+                    existingUser.FirstName = user.FirstName ?? user.FirstName;
+                    existingUser.LastName = user.LastName ?? user.LastName;
+                    existingUser.ContactNo1 = user.ContactNo1 ?? user.ContactNo1;
+                    existingUser.ContactNo2 = user.ContactNo2 ?? user.ContactNo2;
+                    existingUser.Email = user.Email ?? user.Email;
+                    existingUser.Address1 = user.Address1 ?? user.Address1;
+                    existingUser.Address2 = user.Address2 ?? user.Address2;
+                    existingUser.Pin = user.Pin ?? user.Pin;
+                    existingUser.SAPId = user.SAPId ?? user.SAPId;
+                    existingUser.ModifiedOn = System.DateTime.Now;
+                    existingUser.ModifiedBy = Convert.ToInt32(CommonSessionClass.UId);
+                    existingUser.GroupId = user.GroupId ?? user.GroupId;
+                    _dbContext.AS_M_Users.Update(existingUser);
+                    await _dbContext.SaveChangesAsync();
+                    await JsRuntime.InvokeVoidAsync("alert", "Data Updated successfully");
+                    await GetUser();
+                    StateHasChanged();
+                    ResetForm();
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "User not found.");
+                }
+            }
+            catch (System.Data.SqlTypes.SqlNullValueException sqlNullEx)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", $"Null value encountered: {sqlNullEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", $"Error updating data: {ex.Message}");
+            }
+        }
+        else
+        {
+            M_User newUser = new M_User();
+            if (string.IsNullOrWhiteSpace(user.UserName) || string.IsNullOrWhiteSpace(user.PWD))
+            {
+                JsRuntime.InvokeVoidAsync("alert", "Please add data in both fields.");
+                return;
+            }
+            newUser = new M_User
+                {
+                    UserName = user.UserName,
+                    PWD = user.PWD,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    ContactNo1 = user.ContactNo1,
+                    ContactNo2 = user.ContactNo2,
+                    Email = user.Email,
+                    Address1 = user.Address1,
+                    Address2 = user.Address2,
+                    Pin = user.Pin,
+                    SAPId = intSapId.ToString(),
+                    CreatedOn=System.DateTime.Now,
+                    CreatedBy=Convert.ToInt32(CommonSessionClass.UId),
+                    GroupId = user.GroupId
+                };
+            _dbContext.AS_M_Users.Add(newUser);
+            _dbContext.SaveChangesAsync();
+            JsRuntime.InvokeVoidAsync("alert", "Data saved successfully");
+            await GetUser();
+            StateHasChanged();
+            ResetForm();
+        }
+
+    }
+    private void GetSapId()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string procedute = "select o.USERID from OUSR o where o.INTERNAL_K=1";
+                oRs.DoQuery(procedute);
+                if (oRs.RecordCount > 0)
+                {
+                    lstUsers1!.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new M_User
+                            {
+                                SAPId = oRs.Fields.Item("USERID").Value.ToString()
+                            };
+                        lstUsers1!.Add(option);
+                        oRs.MoveNext();
+                    }
+                    intSapId = Convert.ToInt32(lstUsers1[0].SAPId.ToString());
+                }
+                else
+                {
+                    JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                AppConfig.SAPDIDisconnect();
+
+            }
+        }
+    }
+    private void EditData(M_User data)
+    {
+        user.UserId = data.UserId;
+        user.UserName = data.UserName;
+        user.PWD = data.PWD;
+        user.FirstName = data.FirstName;
+        user.LastName = data.LastName;
+        user.ContactNo1 = data.ContactNo1;
+        user.ContactNo2 = data.ContactNo2;
+        user.Email = data.Email;
+        user.Address1 = data.Address1;
+        user.Address2 = data.Address2;
+        user.Pin = data.Pin;
+        user.SAPId = data.SAPId;
+        user.GroupId = data.GroupId;
+        ButtonTitle = "Update";
+    }
+
+    protected async Task GetUser()
+    {
+        lstUsers = await _dbContext.AS_M_Users
+            .Select(c => new M_User
+                {
+                    UserId = c.UserId,
+                    UserName = c.UserName,
+                    PWD = c.PWD,
+                    FirstName = c.FirstName,
+                    LastName = c.LastName,
+                    ContactNo1 = c.ContactNo1,
+                    ContactNo2 = c.ContactNo2,
+                    Email = c.Email,
+                    Address1 = c.Address1,
+                    Address2 = c.Address2,
+                    Pin = c.Pin,
+                    SAPId=c.SAPId,
+                    CreatedBy = Convert.ToInt32(CommonSessionClass.UId),
+                    CreatedOn = System.DateTime.Now,
+                    GroupId = c.GroupId
+                })
+            .ToListAsync();
+
+    }
+    private void fillUserGroup(ChangeEventArgs e)
+    {
+        if (userGroup.GroupId > 0)
+        {
+            searchTerm = e.Value.ToString();
+            var result = _dbContext.AS_M_USERGROUP
+                .Where(u => u.GroupId.ToString() == searchTerm)
+                .ToList();
+            if (result.Any())
+            {
+                userGroup.GroupName = result.First().GroupName;
+            }
+
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if ((CommonSessionClass.UName) == String.Empty || CommonSessionClass.UName == null)
+        {
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+            GetSapId();
+            lstUserGroups = await _dbContext.AS_M_USERGROUP
+           .Select(c => new M_USERGROUP { GroupId = c.GroupId, GroupName = c.GroupName })
+           .ToListAsync();
+            lstUsers = await _dbContext.AS_M_Users
+           .Select(c => new M_User { UserId = c.UserId, UserName = c.UserName, PWD = c.PWD })
+           .ToListAsync();
+            if (lstUsers.Count() == 0)
+            {
+                NavigationManager.NavigateTo("/userPage", true);
+            }
+            else
+            {
+                if ((CommonSessionClass.UName) == String.Empty || CommonSessionClass.UName == null)
+                {
+                    NavigationManager.NavigateTo("/loginPage", true);
+                }
+                await GetUser();
+                ButtonTitle = "Save";
+            }
+        }
+    }
+
+    private void ResetForm()
+    {
+        ButtonTitle = "Save";
+        user = new M_User();
+        StateHasChanged();
+     
+    }
+
+  
+}

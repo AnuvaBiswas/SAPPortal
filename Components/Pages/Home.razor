@@ -1,0 +1,39 @@
+﻿@page "/"
+@using SAPPortal.Components.Services
+@using SAPPortal.Models
+@inject ApplicationDbContext _dbContext;
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JsRuntime;
+
+@if (!isLoggedIn)
+{
+    <LogIn></LogIn>
+}
+else
+@if (isLoggedIn)
+{
+    <h1>Welcome to the SAP Portal</h1>
+   
+    <!-- Your home page content here -->
+}
+
+
+@code {
+    private bool isLoggedIn = false;
+    CommonSessionClass commonSessionClass = new CommonSessionClass();
+    protected override async Task OnInitializedAsync()
+    {
+        if (CommonSessionClass.UName == null || CommonSessionClass.UName == string.Empty)
+        {
+            isLoggedIn = false;
+        }
+        else
+        {
+            isLoggedIn = true;
+        }
+        StateHasChanged();
+    }
+  
+}
+
+

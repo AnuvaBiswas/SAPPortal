@@ -1,0 +1,1829 @@
+﻿@page "/incoming-qc"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Components.Services
+@using SAPPortal.Models
+@inject IJSRuntime JsRuntime
+@inject ApplicationDbContext _dbContext
+@inject IHttpContextAccessor HttpContextAccessor
+@inject SAPConnection AppConfig
+@inject IServiceScopeFactory ServiceScopeFactory
+@rendermode InteractiveServer
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<div>
+    <h3>Incoming QC</h3>
+    <div class="form-row">
+        <div class="col-md-3">
+            <label>QC Number</label>
+            <input type="text" class="form-control" value="@incomingQC.QCNo" readonly />
+        </div>
+        <div class="col-md-3">
+            <label>QC Date</label>
+            <input type="text" class="form-control" value="@incomingQC.QCDate1" />
+        </div>
+        <div class="col-md-3">
+            <label>Vendor</label>
+            <div class="input-group">
+                <input type="text" class="form-control" @bind="@selectedVendor.CardCode" placeholder="Select Vendor" @onclick="OpenModalVendor" />
+                <span class="input-group-text" @onclick="OpenModalVendor">
+                    <i class="fa-solid fa-angles-right fa-beat" style="color:#4c0ebe;"></i>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label>Vendor Name</label>
+            <input type="text" class="form-control" value="@incomingQC.VendorName" readonly />
+        </div>
+        <div class="col-md-3">
+            <label>Good Receipt PO</label>
+            <div class="input-group">
+                <input type="text" class="form-control" value="@selectedPO_Details_Model.DocNumer" placeholder="Select Goods Receipt PO" @onclick="OpenModalPO" />
+                <span class="input-group-text" @onclick="OpenModalPO">
+                    <i class="fa-solid fa-angles-right fa-beat" style="color:#4c0ebe;"></i>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label>Purchase Order No</label>
+            <input type="text" class="form-control" value="@incomingQC.PurchaseOrderNo" readonly />
+
+        </div>
+        <div class="col-md-3">
+            <label>Project</label>
+            <input type="text" class="form-control" value="@incomingQC.Project" readonly />
+        </div>
+        <div class="col-md-3">
+            <label>Warehouse</label>
+            <input type="text" class="form-control" value="@incomingQC.Warehouse" readonly />
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="col-md-3">
+            <label>Process Stage</label>
+            <select class="form-select" value="@incomingQC.ProcessStage" @onchange="OnProcessStageChanged">
+                <option value="">Select Process</option>
+                @foreach (var nameOption in lstProcessStage)
+                {
+                    <option value="@nameOption.Code">@nameOption.Name1</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label>Item Code</label>
+            <div class="input-group">
+                <input type="text" class="form-control" value="@selectedItem.ItemCode" placeholder="Select Item" @onclick="OpenModalItem" />
+                <span class="input-group-text" @onclick="OpenModalItem">
+                    <i class="fa-solid fa-angles-right fa-beat" style="color:#4c0ebe;"></i>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <label>Line Number</label>
+            <input type="text" class="form-control" value="@incomingQC.Linenum" readonly />
+        </div>
+        <div class="col-md-3">
+            <label>Batch No.</label>
+            <div class="input-group">
+                <input type="text" class="form-control" value="@selectedBatch.BatchNumber" placeholder="Select Batch" @onclick="OpenModalBatch" />
+                <span class="input-group-text" @onclick="OpenModalBatch">
+                    <i class="fa-solid fa-angles-right fa-beat" style="color:#4c0ebe;"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+  @*   @foreach (var stagecount in lstProcessStagefilter.Select((value, index) => new { value, index }))
+    {
+        var x = IOQ1ModelList;
+        var buffer1=IOQ1ModelList!.Where(m => m.ProcessStage == lstProcessStagefilter[stagecount.index].Code).ToList(); 
+        <h5>Parameter Details Stage @(stagecount.index +1)</h5>  *@
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Parameter Code</th>
+                    <th>Parameter Name</th>
+                    <th>Parameter Type</th>
+                    <th>Remarks</th>               
+                    <th>Stand Value</th>
+                    <th>AcceptMaxValue</th>
+                    <th>AcceptMinValue</th>
+                    <th>HoldMaxValue</th>
+                    <th>HoldMinValue</th>
+                    <th>RejMaxValue</th>
+                    <th>RejMinValue</th>
+                </tr>
+            </thead>
+            <tbody>   
+                @foreach (var item in IOQ1ModelList)
+                {
+                    <tr>
+                        <td>@item.U_ParmCode</td>
+                        <td>@item.U_ParmDesc</td>
+                        <td>@item.ParmType1</td>
+                        <td>@item.U_Remarks</td>
+                        <td>@item.U_StandValue</td>
+                        <td>@item.U_AcceptMaxValue</td>
+                        <td>@item.U_AcceptMinValue</td>
+                        <td>@item.U_HoldMaxValue</td>
+                        <td>@item.U_HoldMinValue</td>
+                        <td>@item.U_RejMaxValue</td>
+                        <td>@item.U_RejMinValue</td>
+                    </tr>
+
+                }
+
+            </tbody>
+        </table>
+   @*  } *@
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Parameter Code</th>
+                <th>Parameter Name</th>
+                <th>Parameter Type</th>
+                <th>Remarks</th>
+                <th>Numerical Value</th>
+                <th>Logical Value</th>
+                <th>Sequence</th>
+                <th>Stand Value</th>
+                <th>AcceptMaxValue</th>
+                <th>AcceptMinValue</th>
+                <th>HoldMaxValue</th>
+                <th>HoldMinValue</th>
+                <th>RejMaxValue</th>
+                <th>RejMinValue</th>
+            </tr>
+        </thead>
+        <tbody>  
+
+          @*   @foreach (var item in incomingQC.lstQCParameters.Select((value, index) => new { value, index })) *@
+            @for (int i=0; i< incomingQC.lstQCParameters.Count();i++)
+          {
+
+                <tr>
+                    <td>@incomingQC.lstQCParameters[i].ParameterCode</td>
+                    <td>@incomingQC.lstQCParameters[i].ParameterName</td>  
+                    <td>@incomingQC.lstQCParameters[i].Type</td>  
+                    <td>
+                        <input type="text" class="form-control" value="@incomingQC.lstQCParameters[i].Remarks"
+                        @onchange="@(async (e) => await OnRemarksChange(e, i))"
+                        />
+                    </td>
+                    @if (@incomingQC.lstQCParameters[i].Type == "Numeric")
+                    {
+                        <td>
+                            <input type="number" class="form-control" @bind="@incomingQC.lstQCParameters[i].Type" />
+
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <input type="number" class="form-control" value="@incomingQC.lstQCParameters[i].Numeric" disabled />
+                        </td>
+                    }
+
+                    @if (@incomingQC.lstQCParameters[i].Type == "Logical")
+                    {
+                        <td>
+
+                            <select class="form-select" value="@incomingQC.lstQCParameters[i].Type"
+                            @onchange="@(async (e) => await OnTypeChange(e, i))"
+                            >
+                                <option value="">Select Name</option>
+                                @foreach (var nameOption in lstCheckboxOptions)
+                                {
+                                    <option value="@nameOption.U_Status">@nameOption.U_Status</option>
+                                }
+                            </select>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>
+                            <input type="text" class="form-control" @bind="@incomingQC.lstQCParameters[i].Type"  />
+                        </td>
+                    }
+                    <td>
+                        <input type="number" class="form-control" value="@incomingQC.lstQCParameters[i].Sequence"
+                        @onchange="@(async (e) => await OnSequenceChange(e, i))"
+                        />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control"
+                        value="@incomingQC.lstQCParameters[i].StandValue"
+                        @onchange="@(async (e) => await OnStandardChange(e, i))" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" value="@incomingQC.lstQCParameters[i].AcceptMaxValue"
+                        @onchange="@(async (e) => await OnAcceptMaxValueChange(e, i))"
+                        />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" value="@incomingQC.lstQCParameters[i].AcceptMinValue"
+                        @onchange="@(async (e) => await OnAcceptMinValueChange(e, i))"
+                        />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" value="@incomingQC.lstQCParameters[i].HoldMaxValue"
+                               @onchange="@(async (e) => await OnAcceptMaxValueChange(e,i))" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" @bind="@incomingQC.lstQCParameters[i].HoldMinValue" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" @bind="@incomingQC.lstQCParameters[i].RejMaxValue" />
+                    </td>
+                    <td>
+                        <input type="number" class="form-control" @bind="@incomingQC.lstQCParameters[i].RejMinValue" />
+                    </td>
+                </tr>
+
+            }
+
+        </tbody>
+    </table>
+
+    <div class="form-row">
+        <button type="button" class="btn btn-primary" @onclick="SaveQC">Save</button>
+        <button type="button" class="btn btn-secondary" @onclick="CancelQC">Cancel</button>
+
+    </div>
+</div>
+<!-- Modal structure -->
+@if (isModalVisibleVendor)
+{
+    @* <div class="modal fade show" tabindex="3" style="display:block;" role="dialog"> *@
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select a Vendor</h5>
+                    <button type="button" class="close" @onclick="CloseModalVendor">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                        @bind-Value="searchTerm"
+                        @oninput="FilterItems"
+                        @onkeydown="HandleKeyDown" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm))
+
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <th>Vendor Id</th>
+                                    <th>Vendor Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredVendor!.Count() == 0)
+
+                                {
+                                    <tr>
+                                  @*       <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td> *@
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var vender in filteredVendor)
+
+                                    {
+                                        <tr @onclick="() => SelectItem(vender)"
+                                        class="@(vender == highlightedItem ? "table-active" : "")">
+                                            <td>@vender.CardCode</td>
+                                            <td>@vender.CardName</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+                @* <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+            </div> *@
+            </div>
+        </div>
+    </div>
+
+    <!-- Backdrop -->
+    @*  <div class="modal-backdrop fade show"></div> *@
+}
+
+@if (isModalVisiblePO)
+
+{
+    @* <div class="modal fade show" tabindex="3" style="display:block;" role="dialog"> *@
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select PO</h5>
+                    <button type="button" class="close" @onclick="CloseModalPO">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                        @bind-Value="searchTerm1"
+                        @oninput="FilterItems1"
+                        @onkeydown="HandleKeyDown1" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm1))
+
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm1">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+
+                                    <th>Doc Entry</th>
+                                    <th>Doc Num</th>
+                                    <th>Purchase Order Number</th>
+                                    <th>Card Code</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredOpen_PO_details!.Count() == 0)
+
+                                {
+                                    <tr>
+                                        <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var po in filteredOpen_PO_details)
+                                    {
+                                        <tr @onclick="() => SelectItem1(po)"
+                                        class="@(po == highlightedItem1 ? "table-active" : "")">
+
+                                            <td>@po.DocEntry</td>
+                                            <td>@po.DocNumer</td>
+                                            <td>@po.PurchaseOrderNumer</td>
+                                            <td>@po.VendorCode</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+                @* <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+            </div> *@
+            </div>
+        </div>
+    </div>
+}
+
+@if (isModalVisibleItem)
+{
+    @* <div class="modal fade show" tabindex="3" style="display:block;" role="dialog"> *@
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select a Item</h5>
+                    <button type="button" class="close" @onclick="CloseModalItem">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                        @bind-Value="searchTerm2"
+                        @oninput="FilterItems2"
+                        @onkeydown="HandleKeyDown2" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm2))
+
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm2">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <th>Item Code</th>
+                                    <th>Item Name</th>
+                                    <th>Line Num</th>
+                                    <th>Doc Entry</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredItem!.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var po in filteredItem)
+
+                                    {
+                                        <tr @onclick="() => SelectItem2(po)"
+                                        class="@(po == highlightedItem2 ? "table-active" : "")">
+                                            <td>@po.ItemCode</td>
+                                            <td>@po.ItemName</td>
+                                            <td>@po.LineNum</td>
+                                            <td>@po.DocEntry</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isModalVisibleBatch)
+{
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select a Batch</h5>
+                    <button type="button" class="close" @onclick="CloseModalBatch">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                        @bind-Value="searchTerm3"
+                        @oninput="FilterItems3"
+                        @onkeydown="HandleKeyDown3" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm3))
+
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm3">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Batchs -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <th>Batch Number</th>
+                                    <th>Item Code</th>
+                                    <th>Item Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredBatch!.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var po in filteredBatch)
+                                    {
+                                        <tr @onclick="() => SelectItem3(po)"
+                                        class="@(po == highlightedItem3 ? "table-active" : "")">
+                                            <td>@po.BatchNumber</td>
+                                            <td>@po.ItemCode</td>
+                                            <td>@po.ItemName</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (isLoading)
+
+{
+    <div class="overlay">
+        <div class="spinner"></div>
+    </div>
+}
+@code {
+
+    IncomingQC incomingQC = new IncomingQC();
+    QCParameter qCParameter = new QCParameter();
+    public List<ProcessStage> lstProcessStage = new List<ProcessStage>();
+    public List<ProcessStage> lstProcessStagefilter { get; set; } = new List<ProcessStage>();
+    protected VendorModel selectedVendor = new VendorModel();
+    protected PO_Details_Model selectedPO_Details_Model = new PO_Details_Model();
+    protected ItemModel selectedItem = new ItemModel();
+    protected BatchModel selectedBatch = new BatchModel();
+    public List<ParameterModel> buffer { get; set; } = new List<ParameterModel>();
+
+    public string? ReloadOpenVendor { get; set; }
+    public string? ReloadOpenPO_Details_Model { get; set; }
+    public string? ReloadOpenItem { get; set; }
+    public string? ReloadOpenBatch { get; set; }
+
+    public string searchTerm = string.Empty;
+    public string searchTerm1 = string.Empty;
+    public string searchTerm2 = string.Empty;
+    public string searchTerm3 = string.Empty;
+
+
+    protected List<VendorModel> filteredVendor = new List<VendorModel>();
+    protected List<ItemModel> filteredItem = new List<ItemModel>();
+    protected List<BatchModel> filteredBatch = new List<BatchModel>();
+    protected List<PO_Details_Model> filteredOpen_PO_details = new List<PO_Details_Model>();
+    protected VendorModel? highlightedItem;
+    protected PO_Details_Model? highlightedItem1;
+    protected ItemModel? highlightedItem2;
+    protected BatchModel? highlightedItem3;
+
+
+    public List<VendorModel>? VendorList = new List<VendorModel>();
+    public List<PO_Details_Model>? Open_PO_details = new List<PO_Details_Model>();
+    public List<PO_Details_Model>? Open_PO_details1 = new List<PO_Details_Model>();
+
+    public List<ItemModel>? ItemList = new List<ItemModel>();
+    public List<IncomingQC>? incomingQCList = new List<IncomingQC>();
+
+    public List<BatchModel>? BatchList = new List<BatchModel>();
+
+    public List<ParameterModel>? ParameterModelList = new List<ParameterModel>();
+    public List<IOQ1Model>? IOQ1ModelList = new List<IOQ1Model>();
+
+    public List<Item_Parameter_Details_Model>? POItemParameterDetailsList = new List<Item_Parameter_Details_Model>();
+
+
+    private bool isEnableField = false;
+
+    private int generatedNumber = 1;
+    public int intStageSeq = 0;
+    public int intPreStageSeq = 0;
+    int QCNo = 0;
+    int intDocEntry = 0;
+    string strStageCode = string.Empty;
+    protected bool isLoading = false;
+
+    protected bool isModalVisibleVendor = false;
+    protected bool isModalVisiblePO = false;
+    protected bool isModalVisibleItem = false;
+    protected bool isModalVisibleBatch = false;
+    public class CheckboxOption
+    {
+        public string? U_Status { get; set; }
+    }
+    public List<CheckboxOption> lstCheckboxOptions = new List<CheckboxOption>();
+    protected async Task GetStatusMaster()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = string.Empty;
+            for (int i = 0; i < ParameterModelList!.Count(); i++)
+            {
+                strSql = "Select * From [@TRIZ_QC_PAR1] where Code='" + ParameterModelList![i].ParmCode + "'";
+            }
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstCheckboxOptions.Clear();
+                while (!oRs.EoF)
+                {
+                    var option = new CheckboxOption
+                        {
+                            U_Status = oRs.Fields.Item("U_Status").Value.ToString()
+                        };
+                    lstCheckboxOptions.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+        }
+    }
+
+    public async Task GetVendor()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string strSql = "Select CardCode,CardName From OCRD where CardType='S' and validFor='Y'";
+                oRs.DoQuery(strSql);
+                if (oRs.RecordCount > 0)
+                {
+                    VendorList!.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new VendorModel
+                            {
+                                CardCode = oRs.Fields.Item("CardCode").Value.ToString(),
+                                CardName = oRs.Fields.Item("CardName").Value.ToString()
+
+                            };
+                        VendorList.Add(option);
+                        oRs.MoveNext();
+                    }
+                    filteredVendor = VendorList.ToList();
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+
+            }
+
+        }
+    }
+
+    protected async Task OpenModalVendor()
+    {
+        isLoading = true;
+        await Task.Delay(2000);
+        await GetVendor();
+        isLoading = false;
+        isModalVisibleVendor = true;
+    }
+
+    protected async Task OpenModalPO()
+    {
+        if (selectedVendor.CardCode == null || selectedVendor.CardCode == string.Empty)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "1st Select Vendor");
+            return;
+        }
+        else
+        {
+            isLoading = true;
+            await Task.Delay(2000);
+            await Get_Open_PONumber(selectedVendor.CardCode);
+            isLoading = false;
+            isModalVisiblePO = true;
+        }
+    }
+
+    protected async Task OpenModalItem()
+    {
+        if (selectedPO_Details_Model.DocEntry == null || selectedPO_Details_Model.DocEntry == string.Empty)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "1st Select PO");
+            return;
+        }
+        else
+        {
+            isLoading = true;
+            await Task.Delay(2000);
+            await Get_Item(selectedPO_Details_Model.DocEntry);
+            isLoading = false;
+            isModalVisibleItem = true;
+        }
+    }
+    protected async Task OpenModalBatch()
+    {
+        if (incomingQC.ProcessStage == string.Empty || incomingQC.ProcessStage == null)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Select Process Stage");
+            return;
+        }
+        else if (selectedItem.ItemCode == string.Empty || selectedItem.ItemCode == null)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "1st Select Item");
+            return;
+        }
+        else
+        {
+            isLoading = true;
+            await Task.Delay(2000);
+            await Get_Batch(selectedItem?.DocEntry, selectedItem?.ItemCode);
+
+            isLoading = false;
+            isModalVisibleBatch = true;
+        }
+    }
+
+    protected void CloseModalVendor()
+    {
+        isModalVisibleVendor = false;
+    }
+    protected void CloseModalPO()
+    {
+        isModalVisiblePO = false;
+    }
+    protected void CloseModalItem()
+    {
+        isModalVisibleItem = false;
+    }
+
+    protected void CloseModalBatch()
+    {
+        isModalVisibleBatch = false;
+    }
+    private void GenerateNumber()
+    {
+        GetQCNumber();
+        incomingQC.QCNo = Convert.ToString(generatedNumber + Convert.ToInt32(QCNo));
+    }
+    protected async Task GetQCNumber()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "select max(isnull(U_QCNo,'0'))QCNo from [dbo].[@TRIZ_QC_OIOQ]";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                QCNo = Convert.ToInt32(oRs.Fields.Item("QCNo").Value.ToString());
+            }
+        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        if ((CommonSessionClass.UName) == String.Empty || CommonSessionClass.UName == null)
+        {
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+            await GetProcessStage();
+            GenerateNumber();
+            incomingQC.QCDate = System.DateTime.Now.Date;
+            incomingQC.QCDate1 = incomingQC.QCDate.ToString("dd-MM-yyyy");
+        }
+    }
+    protected void FilterItems(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+        filteredVendor = VendorList!
+            .Where(v =>
+            v.CardCode!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            v.CardName!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (filteredVendor.Count > 0)
+        {
+            highlightedItem = filteredVendor[0];
+        }
+    }
+    protected void FilterItems1(ChangeEventArgs e)
+    {
+        searchTerm1 = e.Value?.ToString() ?? string.Empty;
+        filteredOpen_PO_details = Open_PO_details1!
+            .Where(v =>
+            v.VendorCode!.Contains(searchTerm1, StringComparison.OrdinalIgnoreCase) ||
+            v.VendorName!.Contains(searchTerm1, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (filteredOpen_PO_details.Count > 0)
+        {
+            highlightedItem1 = filteredOpen_PO_details[0];
+        }
+    }
+    protected void FilterItems2(ChangeEventArgs e)
+    {
+        searchTerm2 = e.Value?.ToString() ?? string.Empty;
+        filteredItem = ItemList!
+            .Where(v =>
+            v.ItemCode!.Contains(searchTerm2, StringComparison.OrdinalIgnoreCase) ||
+            v.ItemName!.Contains(searchTerm2, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (filteredItem.Count > 0)
+        {
+            highlightedItem2 = filteredItem[0];
+        }
+    }
+    protected void FilterItems3(ChangeEventArgs e)
+    {
+        searchTerm3 = e.Value?.ToString() ?? string.Empty;
+        filteredBatch = BatchList!
+            .Where(v =>
+            v.ItemCode!.Contains(searchTerm3, StringComparison.OrdinalIgnoreCase) ||
+            v.BatchNumber!.Contains(searchTerm3, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (filteredBatch.Count > 0)
+        {
+            highlightedItem3 = filteredBatch[0];
+        }
+    }
+
+    protected void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            SelectItem(highlightedItem!);
+        }
+    }
+    protected void HandleKeyDown1(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            SelectItem1(highlightedItem1!);
+        }
+    }
+    protected void HandleKeyDown2(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            SelectItem2(highlightedItem2!);
+        }
+    }
+    protected void HandleKeyDown3(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            SelectItem3(highlightedItem3!);
+        }
+    }
+
+    private void OnProcessStageChanged(ChangeEventArgs e)
+    {
+        var selectedValue = e.Value.ToString();
+        incomingQC.ProcessStage = selectedValue;
+        string proStageName = string.Empty;
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "select code,Name,U_Sequence,(Name+'-'+cast(U_Sequence as varchar(max)))Name1 from [@TRIZ_QC_OPST] where Code= '"+selectedValue+"'";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                intStageSeq = Convert.ToInt32(oRs.Fields.Item("U_Sequence").Value.ToString());
+            }
+        }
+        intPreStageSeq = intStageSeq - 1;
+        lstProcessStagefilter = lstProcessStage;
+        // lstProcessStagefilter = lstProcessStage.Where(m => m.Code==selectedValue?.ToString()).ToList();
+    }
+    private async Task OnStandardChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            // Update only the selected row's value
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].StandValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+
+        }
+    }
+
+    private async Task OnTypeChange(ChangeEventArgs e, int index)
+    {
+        if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+        {
+            incomingQC.lstQCParameters[index].Type = e.Value.ToString();
+        }
+
+    }
+
+    private async Task OnSequenceChange(ChangeEventArgs e, int index)
+    {
+        if (int.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].Sequence = Convert.ToInt32(newValue);
+            }
+        }
+        else
+        {
+
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Sequence.");
+
+        }
+    }
+    private async Task OnAcceptMaxValueChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].AcceptMaxValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+    private async Task OnAcceptMinValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].AcceptMinValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+
+    private async Task OnHoldMaxValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].HoldMaxValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+    private async Task OnHoldMinValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].HoldMinValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+
+    private async Task OnRejMaxValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].RejMaxValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+    private async Task OnRejMinValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+            {
+                incomingQC.lstQCParameters[index].RejMinValue = Convert.ToDouble(newValue);
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+        }
+    }
+
+    private async Task OnRemarksChange(ChangeEventArgs e, int index)
+    {
+        if (index >= 0 && index <= incomingQC.lstQCParameters.Count)
+        {
+            incomingQC.lstQCParameters[index].Remarks= e.Value.ToString();
+        } 
+    }
+
+    protected async void SelectItem(VendorModel item)
+    {
+        CloseModalVendor();
+        selectedVendor = item;
+        incomingQC.VendorName = item.CardName;
+        ReloadOpenVendor = item.CardCode;
+        await GetOpenPO(item.CardCode!);
+        selectedVendor.CardCode =item.CardCode;
+        incomingQC.VendorCode=item.CardCode;
+
+    }
+    protected async void SelectItem1(PO_Details_Model item)
+    {
+        CloseModalPO();
+        selectedPO_Details_Model = item;
+        incomingQC.PurchaseOrderNo = item!.DocNumer;
+        incomingQC.Project = item!.Project;
+        ReloadOpenPO_Details_Model = item.DocEntry;
+        incomingQC.VendorCode = item!.VendorCode;
+        await Get_Open_PONumber(item.VendorCode!);
+        selectedPO_Details_Model.VendorCode =item.VendorCode;
+        incomingQC.PurchaseOrderNo = item.PurchaseOrderNumer;
+        incomingQC.Warehouse = item.WhsName;
+        incomingQC.WarehouseCode = item.WhsCode;
+        incomingQC.Project = item.Project;
+        incomingQC.ProjectName = item.ProjectName;
+        incomingQC.GoodsReceiptPO = item.DocNumer;
+    }
+    protected async void SelectItem2(ItemModel item)
+    {
+        CloseModalItem();
+        selectedItem = item;
+        incomingQC.ItemCode = item.ItemCode;
+        incomingQC.ItemName = item.ItemName;
+        await Get_Item(item.DocEntry);
+        selectedItem.ItemCode = item.ItemCode;
+
+        selectedItem.DocEntry = item.DocEntry;
+        incomingQC.Linenum = item.LineNum;
+
+    }
+    protected async void SelectItem3(BatchModel item)
+    {
+        CloseModalBatch();
+        selectedBatch = item;
+        incomingQC.ItemCode = item.ItemCode;
+        string DocEntry = incomingQC.PurchaseOrderNo;
+        await Get_Batch(DocEntry, item.ItemCode);
+        incomingQC.BatchNo = item.BatchNumber;
+        StateHasChanged();
+            await Get_ParameterOldValue(incomingQC.ProcessStage);
+            StateHasChanged();
+        await Get_Parameter(incomingQC.PurchaseOrderNo, incomingQC.ItemCode, incomingQC.Linenum, incomingQC.ProcessStage);
+    
+    }
+    public async Task GetOpenPO(string CardCode)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string procedute = "exec TRIZ_QC_GetOpenPO @CardCode='" + CardCode + "'";
+                oRs.DoQuery(procedute);
+                if (oRs.RecordCount > 0)
+                {
+                    Open_PO_details!.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new PO_Details_Model
+                            {
+                                DocEntry = oRs.Fields.Item("DocEntry").Value.ToString(),
+                                DocNumer = oRs.Fields.Item("DocNumer").Value.ToString(),
+                                VendorCode = oRs.Fields.Item("VendorCode").Value.ToString(),
+                                VendorName = oRs.Fields.Item("VendorName").Value.ToString(),
+                                PostingDate = DateTime.Parse(oRs.Fields.Item("PostingDate").Value.ToString()),
+                                TotalAmount = oRs.Fields.Item("TotalAmount").Value.ToString(),
+                                ContactPerson = oRs.Fields.Item("ContactPerson").Value.ToString(),
+                                VendorRefNo = oRs.Fields.Item("VendorRefNo").Value.ToString(),
+                                Currency = oRs.Fields.Item("Currency").Value.ToString(),
+                                ParameterTaged = oRs.Fields.Item("ParameterTaged").Value.ToString(),
+                                DeliveryDate = DateTime.Parse(oRs.Fields.Item("DeliveryDate").Value.ToString()),
+                                DocumentDate = DateTime.Parse(oRs.Fields.Item("DocumentDate").Value.ToString())
+                            };
+                        Open_PO_details!.Add(option);
+                        oRs.MoveNext();
+                    }
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                AppConfig.SAPDIDisconnect();
+
+            }
+        }
+    }
+
+    public async Task Get_Open_PONumber(string VendorCode)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string procedute = "exec Triz_QC_GetGRPO @BPCode='" + VendorCode + "'";
+                oRs.DoQuery(procedute);
+                if (oRs.RecordCount > 0)
+                {
+                    Open_PO_details1!.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new PO_Details_Model
+                            {
+                                DocEntry = oRs.Fields.Item("GRPODocEntry").Value.ToString(),
+                                DocNumer = oRs.Fields.Item("GRPODocNum").Value.ToString(),
+                                PurchaseOrderNumer = oRs.Fields.Item("PurchaseOrderNo").Value.ToString(),
+                                DocumentDate = DateTime.Parse(oRs.Fields.Item("DocDate").Value.ToString()),
+                                VendorCode = oRs.Fields.Item("CardCode").Value.ToString(),
+                                VendorName = oRs.Fields.Item("CardName").Value.ToString(),
+                                ItemCode = oRs.Fields.Item("ItemCode").Value.ToString(),
+                                WhsName = oRs.Fields.Item("WhsName").Value.ToString(),
+                                WhsCode = oRs.Fields.Item("WhsCode").Value.ToString(),
+                                Project = oRs.Fields.Item("Project").Value.ToString(),
+                                ProjectName = oRs.Fields.Item("ProjectName").Value.ToString()
+                            };
+                        Open_PO_details1!.Add(option);
+                        oRs.MoveNext();
+                    }
+                    filteredOpen_PO_details = Open_PO_details1!;
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                AppConfig.SAPDIDisconnect();
+            }
+        }
+    }
+
+    public async Task Get_Item(string DocEntry)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+                string procedute = "exec Triz_QC_GetGRPOItemDetails @DocEntry='" + DocEntry + "'";
+
+                oRs.DoQuery(procedute);
+                if (oRs.RecordCount > 0)
+                {
+                    ItemList!.Clear();
+
+                    while (!oRs.EoF)
+                    {
+
+                        var option = new ItemModel
+                            {
+                                DocEntry = oRs.Fields.Item("DocEntry").Value.ToString(),
+                                DocNumer = oRs.Fields.Item("DocNum").Value.ToString(),
+                                ItemCode = oRs.Fields.Item("ItemCode").Value.ToString(),
+                                ItemName = oRs.Fields.Item("ItemDescription").Value.ToString(),
+                                LineNum = oRs.Fields.Item("LineNum").Value.ToString(),
+                                WhsName = oRs.Fields.Item("WarehouseName").Value.ToString(),
+                                WhsCode = oRs.Fields.Item("WarehouseCode").Value.ToString(),
+                                Project = oRs.Fields.Item("Project").Value.ToString()
+                            };
+
+                        ItemList!.Add(option);
+                        oRs.MoveNext();
+
+                    }
+                    filteredItem = ItemList!.ToList();
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                AppConfig.SAPDIDisconnect();
+            }
+        }
+    }
+
+    public async Task Get_Batch(string? DocEntry, string? ItemCode)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            try
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+                string procedute = "exec Triz_QC_GetGRPOItemBatch @DocEntry='" + DocEntry + "', @ItemCode='" + ItemCode + "'";
+
+                oRs.DoQuery(procedute);
+                if (oRs.RecordCount > 0)
+                {
+                    BatchList!.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new BatchModel
+                            {
+                                DocEntry = oRs.Fields.Item("DocEntry").Value.ToString(),
+                                DocNumer = oRs.Fields.Item("DocNum").Value.ToString(),
+                                DocumentDate = DateTime.Parse(oRs.Fields.Item("DocDate").Value.ToString()),
+                                VendorCode = oRs.Fields.Item("CardCode").Value.ToString(),
+                                VendorName = oRs.Fields.Item("CardName").Value.ToString(),
+                                ItemCode = oRs.Fields.Item("ItemCode").Value.ToString(),
+                                ItemName = oRs.Fields.Item("Dscription").Value.ToString(),
+                                BatchNumber = oRs.Fields.Item("BatchNum").Value.ToString(),
+                                Quantity = Double.Parse(oRs.Fields.Item("Quantity").Value.ToString()),
+
+                            };
+                        BatchList!.Add(option);
+                        oRs.MoveNext();
+                    }
+                    filteredBatch = BatchList!;
+                }
+                else
+                {
+                    // await JsRuntime.InvokeVoidAsync("alert", "No Data Found");
+                    return;
+                }
+
+            }
+            catch (Exception ex)
+            {
+                throw new Exception();
+            }
+            finally
+            {
+                AppConfig.SAPDIDisconnect();
+            }
+        }
+    }
+
+ public async Task Get_Parameter(string DocEntry, string ItemCode, string Linenum, string ProcessStage)
+{
+    if (AppConfig.diCompany == null)
+    {
+        try
+        {
+            AppConfig.diCompany = AppConfig.SAPDIConnection();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+    }
+
+    if (AppConfig.diCompany != null)
+    {
+        try
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string procedute = $"exec Triz_QC_GetGRPOItemParam @DocEntry='{DocEntry}', @ItemCode='{ItemCode}', @Linenum='{Linenum}', @ProcessStage='{ProcessStage}'";
+            oRs.DoQuery(procedute);
+
+            if (oRs.RecordCount > 0)
+            {
+                ParameterModelList!.Clear();
+                incomingQC.lstQCParameters!.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ParameterModel
+                    {
+                        ProcessStage = oRs.Fields.Item("ProcessStage").Value.ToString(),
+                        ProcessStageName = oRs.Fields.Item("ProcessStageName").Value.ToString(),
+                        ParmCode = oRs.Fields.Item("ParmCode").Value.ToString(),
+                        ParmName = oRs.Fields.Item("ParmName").Value.ToString(),
+                        ParmType = oRs.Fields.Item("ParmType").Value.ToString(),
+                        ParmType1 = oRs.Fields.Item("ParmType1").Value.ToString(),
+                        Remarks = oRs.Fields.Item("Remarks").Value.ToString(),
+                        Sequence = Convert.ToInt32(oRs.Fields.Item("Sequence").Value),
+                        StandValue = Convert.ToDouble(oRs.Fields.Item("StandValue").Value),
+                        AcceptMaxValue = Convert.ToDouble(oRs.Fields.Item("AcceptMaxValue").Value),
+                        AcceptMinValue = Convert.ToDouble(oRs.Fields.Item("AcceptMinValue").Value),
+                        HoldMaxValue = Convert.ToDouble(oRs.Fields.Item("HoldMaxValue").Value),
+                        HoldMinValue = Convert.ToDouble(oRs.Fields.Item("HoldMinValue").Value),
+                        RejMaxValue = Convert.ToDouble(oRs.Fields.Item("RejMaxValue").Value),
+                        RejMinValue = Convert.ToDouble(oRs.Fields.Item("RejMinValue").Value),
+                    };
+                    ParameterModelList!.Add(option);
+
+                    var option1 = new QCParameter
+                    {
+                        ProcessStage = oRs.Fields.Item("ProcessStage").Value.ToString(),
+                        ProcessStageName = oRs.Fields.Item("ProcessStageName").Value.ToString(),
+                        ParameterCode = oRs.Fields.Item("ParmCode").Value.ToString(),
+                        ParameterName = oRs.Fields.Item("ParmName").Value.ToString(),
+                        Type = oRs.Fields.Item("ParmType").Value.ToString(),
+                        Type1 = oRs.Fields.Item("ParmType1").Value.ToString(),
+                        Remarks = oRs.Fields.Item("Remarks").Value.ToString(),
+                        Sequence = Convert.ToInt32(oRs.Fields.Item("Sequence").Value),
+                        StandValue = Convert.ToDouble(oRs.Fields.Item("StandValue").Value),
+                        AcceptMaxValue = Convert.ToDouble(oRs.Fields.Item("AcceptMaxValue").Value),
+                        AcceptMinValue = Convert.ToDouble(oRs.Fields.Item("AcceptMinValue").Value),
+                        HoldMaxValue = Convert.ToDouble(oRs.Fields.Item("HoldMaxValue").Value),
+                        HoldMinValue = Convert.ToDouble(oRs.Fields.Item("HoldMinValue").Value),
+                        RejMaxValue = Convert.ToDouble(oRs.Fields.Item("RejMaxValue").Value),
+                        RejMinValue = Convert.ToDouble(oRs.Fields.Item("RejMinValue").Value),
+                    };
+                    incomingQC.lstQCParameters!.Add(option1);
+
+                    oRs.MoveNext();
+                }
+                await GetStatusMaster();
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error fetching parameters: " + ex.Message);
+        }
+        finally
+        {
+            AppConfig.SAPDIDisconnect();
+        }
+    }
+}
+
+
+ public async Task Get_ParameterOldValue(string ProcessStage)
+{
+    if (AppConfig.diCompany == null)
+    {
+        try
+        {
+            AppConfig.diCompany = AppConfig.SAPDIConnection();
+        }
+        catch (Exception)
+        {
+            return;
+        }
+    }
+    
+    if (AppConfig.diCompany != null)
+    {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql1 = "select Code from [@TRIZ_QC_OPST] where U_Sequence='" + intPreStageSeq + "' order by U_Sequence asc";
+
+            oRs.DoQuery(strSql1);
+
+            if (oRs.RecordCount > 0)
+            {
+                strStageCode = oRs.Fields.Item("Code").Value.ToString();
+            }
+        try
+        {
+            SAPbobsCOM.Recordset oRs1 = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string procedute1 = $"SELECT U_ParmCode, U_ParmDesc, U_ParmType, U_Remarks,U_StandValue,U_AcceptMaxValue,U_AcceptMinValue,U_HoldMaxValue,U_HoldMinValue,U_RejMinValue,U_RejMaxValue FROM [dbo].[@TRIZ_QC_IOQ1] WHERE U_ProcessStage='{strStageCode}'";
+            oRs1.DoQuery(procedute1);
+
+            if (oRs1.RecordCount > 0)
+            {
+                IOQ1ModelList!.Clear();
+                while (!oRs1.EoF)
+                {
+                    var ioqOption = new IOQ1Model
+                    {
+                        U_ParmCode = oRs1.Fields.Item("U_ParmCode").Value.ToString(),
+                        U_ParmDesc = oRs1.Fields.Item("U_ParmDesc").Value.ToString(),
+                        U_ParmType = oRs1.Fields.Item("U_ParmType").Value.ToString(),
+                       
+                        U_Remarks = oRs1.Fields.Item("U_Remarks").Value.ToString(),
+                        U_StandValue=Convert.ToDouble(oRs1.Fields.Item("U_StandValue").Value.ToString()),
+                        U_AcceptMaxValue=Convert.ToDouble(oRs1.Fields.Item("U_AcceptMaxValue").Value.ToString()),
+                        U_AcceptMinValue=Convert.ToDouble(oRs1.Fields.Item("U_AcceptMinValue").Value.ToString()),
+                        U_HoldMaxValue=Convert.ToDouble(oRs1.Fields.Item("U_HoldMaxValue").Value.ToString()),
+                        U_HoldMinValue=Convert.ToDouble(oRs1.Fields.Item("U_HoldMinValue").Value.ToString()),
+                        U_RejMinValue=Convert.ToDouble(oRs1.Fields.Item("U_RejMinValue").Value.ToString()),
+                        U_RejMaxValue=Convert.ToDouble(oRs1.Fields.Item("U_RejMaxValue").Value.ToString()),
+                    };
+                       if (ioqOption.U_ParmType == "L")
+                    {
+                        ioqOption.ParmType1 = "Logical";
+                    }
+                    else
+                    {
+                        ioqOption.ParmType1 = "Other"; // Default or other type
+                    }
+                    IOQ1ModelList!.Add(ioqOption);
+                    oRs1.MoveNext();
+                }
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error fetching parameters: " + ex.Message);
+        }
+        finally
+        {
+            AppConfig.SAPDIDisconnect();
+        }
+    }
+}
+
+    protected void ClearSearchTerm()
+    {
+        searchTerm = string.Empty;
+        filteredVendor = VendorList!;
+    }
+    protected void ClearSearchTerm1()
+    {
+
+        searchTerm1 = string.Empty;
+        filteredOpen_PO_details = Open_PO_details1!;
+    }
+    protected void ClearSearchTerm2()
+    {
+
+        searchTerm2 = string.Empty;
+        filteredItem = ItemList!;
+    }
+    protected void ClearSearchTerm3()
+    {
+        searchTerm3 = string.Empty;
+        filteredBatch = BatchList!;
+    }
+
+
+    private async Task GetProcessStage()
+    {
+        if (AppConfig.diCompany == null)
+        {
+
+            try
+            {
+
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+
+            }
+            catch (Exception ex)
+            {
+
+                return;
+
+            }
+           
+        }
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "select code,Name,U_Sequence,(Name+'-'+cast(U_Sequence as varchar(max)))Name1 from [@TRIZ_QC_OPST] order by U_Sequence asc";
+
+            oRs.DoQuery(strSql);
+
+            if (oRs.RecordCount > 0)
+            {
+                lstProcessStage.Clear();
+                while (!oRs.EoF)
+                {
+                    var option = new ProcessStage
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            Name = oRs.Fields.Item("Name").Value.ToString(),
+                            Name1 = oRs.Fields.Item("Name1").Value.ToString(),
+                            U_Sequence = Convert.ToInt32(oRs.Fields.Item("U_Sequence").Value.ToString())
+
+                        };
+                    lstProcessStage.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+        }
+    }
+
+    private async void SaveQC()
+    {
+        await DeleteParameters();
+        StateHasChanged();
+        await InsertParameter();
+
+    }
+    private async Task DeleteParameters()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = await Task.Run(() => AppConfig.SAPDIConnection());
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error connecting to SAP: {ex.Message}");
+                return;
+            }
+            
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = null;
+
+            try
+            {
+                oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+                // SQL query to retrieve the DocEntry
+                string strSql = $"SELECT DocEntry FROM [dbo].[@TRIZ_QC_OIOQ] " +
+                                $"WHERE U_PODocEntry = '{incomingQC.PurchaseOrderNo}' " +
+                                $"AND U_ItemCode = '{incomingQC.ItemCode}' " +
+                                $"AND U_ItemLineNo = '{incomingQC.Linenum}' " +
+                                $"AND U_ProcessStage = '{incomingQC.ProcessStage}'";
+
+                oRs.DoQuery(strSql);
+
+                if (!oRs.EoF) // Check if record exists
+                {
+                    incomingQC.DocEntry = oRs.Fields.Item("DocEntry").Value.ToString();
+
+                    // Delete from [@TRIZ_QC_IOQ1]
+                    string strSql1 = $"DELETE FROM [dbo].[@TRIZ_QC_IOQ1] WHERE DocEntry = '{incomingQC.DocEntry}'";
+                    await Task.Run(() => oRs.DoQuery(strSql1));
+
+                    // Delete from [@TRIZ_QC_OIOQ]
+                    string strSql2 = $"DELETE FROM [dbo].[@TRIZ_QC_OIOQ] WHERE DocEntry = '{incomingQC.DocEntry}'";
+                    await Task.Run(() => oRs.DoQuery(strSql2));
+                }
+                else
+                {
+                    Console.WriteLine("No matching records found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting parameters: {ex.Message}");
+            }
+          
+        }
+    }
+
+    private async Task InsertParameter()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+                if (AppConfig.diCompany.Connected == false)
+                {
+                    int connectionResult = AppConfig.diCompany.Connect();
+                    if (connectionResult != 0)
+                    {
+                        string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                        throw new Exception("Failed to connect to SAP: " + errMsg);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+           
+        }
+        if (AppConfig.diCompany != null)
+        {
+            string AddUpdateFlag = string.Empty;
+            SAPbobsCOM.GeneralService oGeneralService = null;
+            SAPbobsCOM.GeneralData oGeneralData = null;
+            SAPbobsCOM.GeneralData oChild = null;
+            SAPbobsCOM.GeneralDataCollection oChildren = null;
+            SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+            SAPbobsCOM.CompanyService oCompanyService = null;
+
+            try
+            {
+                oCompanyService = AppConfig.diCompany.GetCompanyService();
+                oGeneralService = oCompanyService.GetGeneralService("TRIZ_QC_OIOQ");
+                oGeneralData = ((SAPbobsCOM.GeneralData)(oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralData)));
+
+                oGeneralData.SetProperty("U_QCNo", incomingQC.QCNo);
+                oGeneralData.SetProperty("U_QCDate", incomingQC.QCDate1);
+                oGeneralData.SetProperty("U_CardCode", incomingQC.VendorCode);
+                oGeneralData.SetProperty("U_CardName", incomingQC.VendorName);
+
+                oGeneralData.SetProperty("U_GRPODocEntry", incomingQC.GoodsReceiptPO);
+                oGeneralData.SetProperty("U_PODocEntry", incomingQC.PurchaseOrderNo);
+
+                oGeneralData.SetProperty("U_ProjectCode", incomingQC.Project);
+                oGeneralData.SetProperty("U_ProjectName", incomingQC.ProjectName);
+
+                oGeneralData.SetProperty("U_WhsName", incomingQC.Warehouse);
+                oGeneralData.SetProperty("U_WhsCode", incomingQC.WarehouseCode);
+
+                oGeneralData.SetProperty("U_ItemCode", incomingQC.ItemCode);
+                oGeneralData.SetProperty("U_ItemName", incomingQC.ItemName);
+
+                oGeneralData.SetProperty("U_ItemLineNo", Convert.ToInt32(incomingQC.Linenum));
+                oGeneralData.SetProperty("U_BatchNo", incomingQC.BatchNo);
+                oGeneralData.SetProperty("U_ProcessStage", incomingQC.ProcessStage);
+                oChildren = oGeneralData.Child("TRIZ_QC_IOQ1");
+                for (int i = 0; i < incomingQC.lstQCParameters.Count(); i++)
+                {
+                    oChild = oChildren.Add();
+                    oChild.SetProperty("U_ProcessStage", incomingQC.lstQCParameters[i].ProcessStage);
+                    oChild.SetProperty("U_ParmCode", incomingQC.lstQCParameters[i].ParameterCode);
+                    oChild.SetProperty("U_ParmDesc", incomingQC.lstQCParameters[i].ParameterName);
+
+                    if (incomingQC.lstQCParameters[i].Type1 == "L")
+                    {
+                        oChild.SetProperty("U_ParmType", "L");
+                    }
+                    else if (incomingQC.lstQCParameters[i].Type1 == "N")
+                    {
+                        oChild.SetProperty("U_ParmType", "N");
+                    }
+
+                    oChild.SetProperty("U_StandValue", Convert.ToDouble(incomingQC.lstQCParameters[i].StandValue));
+                    oChild.SetProperty("U_AcceptMaxValue", Convert.ToDouble(incomingQC.lstQCParameters[i].AcceptMaxValue));
+                    oChild.SetProperty("U_AcceptMinValue", Convert.ToDouble(incomingQC.lstQCParameters[i].AcceptMinValue));
+
+                    oChild.SetProperty("U_RejMaxValue", Convert.ToDouble(incomingQC.lstQCParameters[i].RejMaxValue));
+                    oChild.SetProperty("U_RejMinValue", Convert.ToDouble(incomingQC.lstQCParameters[i].RejMinValue));
+
+                    oChild.SetProperty("U_HoldMaxValue", Convert.ToDouble(incomingQC.lstQCParameters[i].HoldMaxValue));
+                    oChild.SetProperty("U_HoldMinValue", Convert.ToDouble(incomingQC.lstQCParameters[i].HoldMinValue));
+                    oChild.SetProperty("U_Sequence", Convert.ToInt32(incomingQC.lstQCParameters[i].Sequence));
+                    oChild.SetProperty("U_StageSeq", Convert.ToInt32(intStageSeq));
+                    if (incomingQC.lstQCParameters[i].Type == "Yes")
+                    {
+                        oChild.SetProperty("U_LogicalValue", "Y");
+                    }
+                    else if (incomingQC.lstQCParameters[i].Type == "No")
+                    {
+                        oChild.SetProperty("U_LogicalValue", "N");
+                    }
+                    oChild.SetProperty("U_Remarks", incomingQC.lstQCParameters[i].Remarks);
+
+                }
+                oGeneralParams = oGeneralService.Add(oGeneralData);
+                string Result = System.Convert.ToString(oGeneralParams.GetProperty("DocEntry"));
+
+                await JsRuntime.InvokeVoidAsync("alert", "Data Saves successfully");
+            }
+
+            catch (Exception ex)
+            {
+                string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                //throw new Exception("Error getting General Service: " + sapError);
+
+                await JsRuntime.InvokeVoidAsync("alert", "Error Occured" + sapError);
+            }
+          
+        } 
+    }
+
+    private void CancelQC()
+    {
+        ResetForm();
+        NavigationManager.NavigateTo("/incoming-qc");
+    }
+    private void ResetForm()
+    {
+        incomingQC = new IncomingQC();
+        selectedItem = new ItemModel();
+        selectedVendor = new VendorModel();
+        selectedPO_Details_Model = new PO_Details_Model();
+        isEnableField = false;
+    }
+}

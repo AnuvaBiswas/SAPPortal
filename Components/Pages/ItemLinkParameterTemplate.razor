@@ -1,0 +1,1596 @@
+﻿@page "/ItemLinkParameterTemplate"
+@using SAPPortal.Components.Services
+@using SAPPortal.Models
+@rendermode InteractiveServer
+@inject ItemParameterService ParameterService;
+@inject SAPConnection AppConfig
+@inject IJSRuntime JsRuntime
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<div>
+    
+        <div class="card-header">
+            <h5>Item Link with Parameter Template</h5>
+        </div>
+        <div class="card-body">
+            <form>
+                <div class="row mb-3">
+                        <div class="col-md-3">
+                        <label>Template Name</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control"  />
+                        </div>
+                    </div>
+                        <div class="col-md-3">
+                        <label>Item Code</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="selectedItem.ItemCode"  />
+                        </div>
+                    </div>
+                        <div class="col-md-3">
+                        <label>Item Name</label>
+                        <input type="text" class="form-control" @bind="itemParameter.ItemDescription"  />
+
+                    </div>
+                    <div class="col-md-3">
+                    <label>Active/Inactive</label>
+                        <input type="checkbox" class="form-check-input mt-3" style="margin-top: 3px !important; margin-left: 20px !important;" />
+                    </div>
+                        
+                </div>
+                
+               
+               
+
+                <!-- Table for Parameter Data -->
+                <table class="table table-bordered table-responsive item-link-table">
+        <thead class="table-success">
+            <tr>
+                <th style="min-width: 50px;">#</th>
+                <th style="min-width: 150px;">Parameter</th>
+                <th style="min-width: 150px;">Code</th>
+                <th style="min-width: 150px;">Name</th>
+                <th style="min-width: 150px;">Parameter Type</th>
+                <th style="min-width: 85px;">Standard</th>
+                <th style="min-width: 85px;">Min Value</th>
+                <th style="min-width: 85px;">Max Value</th>
+                <th style="min-width: 85px;">Hold Min Value</th>
+                <th style="min-width: 85px;">Hold Max Value</th>
+                <th style="min-width: 85px;">Rej Min Value</th>
+                <th style="min-width: 85px;">Rej Max Value</th>
+                <th style="min-width: 95px;">Mandatory</th>
+                <th style="min-width: 86px;">Sequence</th>
+                <th style="min-width: 150px;">Required On Print</th>
+                <th style="min-width: 150px;">Applicable On GRN</th>
+                <th style="min-width: 150px;">View On Purchase Order</th>
+                <th style="min-width: 70px;">Actions</th>
+            </tr>
+                    </thead>
+                    <tbody>
+
+                        @foreach (var item in itemParameter.Parameters.Select((value, index) => new { value, index }))
+                        {
+
+                            <tr>
+                                <td>@(item.index + 1)</td>
+                                <td>
+                                    <select class="form-select" value="@itemParameter.Parameters[item.index].Name" @onchange="@(async (e) => await OnNameChange(e, item.index))">
+                                        <option value="">Select Name</option>
+                                        @foreach (var nameOption in availableNames)
+                                        {
+                                            <option value="@nameOption.Name">@nameOption.Name</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input type="text" class="form-control" @bind="itemParameter.Parameters[item.index].Code" readonly /></td>
+                                <td><input type="text" class="form-control" @bind="itemParameter.Parameters[item.index].Name" readonly /></td>
+                                <td><input type="text" class="form-control" @bind="itemParameter.Parameters[item.index].Type1" readonly /></td>
+
+                                <td>
+                                    <input type="number" class="form-control"
+                                           value="@itemParameter.Parameters[item.index].Standard"
+                                           @onchange="@(async (e) => await OnStandardChange(e, item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control"
+                                           value="@itemParameter.Parameters[item.index].MinValue"
+                                           @onchange="@(async(e)=> await OnMinValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@itemParameter.Parameters[item.index].MaxValue"
+                                           @onchange="@(async(e)=> await OnMaxValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@itemParameter.Parameters[item.index].HoldMinValue"
+                                           @onchange="@(async(e)=> await OnHoldMinValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@itemParameter.Parameters[item.index].HoldMaxValue"
+                                           @onchange="@(async(e)=> await OnHoldMaxValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@itemParameter.Parameters[item.index].RejMinValue"
+                                           @onchange="@(async(e)=> await OnRejMinValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@itemParameter.Parameters[item.index].RejMaxValue"
+                                           @onchange="@(async(e)=> await OnRejMaxValueChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    @if (itemParameter.Parameters[item.index].Mandatory == false)
+                                    {
+                                        <Input type="checkbox" value="@itemParameter.Parameters[item.index].Mandatory" @onchange="@(async(e)=> await OnMandatoryChange(e,item.index))" />
+                                    }
+                                    else  @if (itemParameter.Parameters[item.index].Mandatory == true)
+                                    {
+                                        <Input type="checkbox" value="@itemParameter.Parameters[item.index].Mandatory" @onchange="@(async(e)=> await OnMandatoryChange(e,item.index))" checked />
+
+                                    }
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control" value="@(item.index + 1)"
+                                           @onchange="@(async(e)=> await OnSequenceChange(e,item.index))" />
+                                </td>
+                                <td>
+                                    @if (itemParameter.Parameters[item.index].ShowOnPrint == false)
+                                    {
+                                        <input type="checkbox" value="@itemParameter.Parameters[item.index].ShowOnPrint"
+                                               @onchange="@(async(e)=> await OnShowOnPrintChange(e,item.index))" />
+                                    }
+                                    else   @if (itemParameter.Parameters[item.index].ShowOnPrint == true)
+                                    {
+                                        <input type="checkbox" value="@itemParameter.Parameters[item.index].ShowOnPrint"
+                                               @onchange="@(async(e)=> await OnShowOnPrintChange(e,item.index))" checked />
+                                    }
+
+                                </td>
+                                <td>
+                                    <select class="form-select" value="@itemParameter.Parameters[item.index].AfterBeforeGRN"
+                                            @onchange="@(async(e)=> await OnAfterBeforeGRNChange(e,item.index))">
+                                        <option value="A">After</option>
+                                        <option value="B">Before</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    @if (itemParameter.Parameters[item.index].ViewOnPO == false)
+                                    {
+                                        <input type="checkbox" value="@itemParameter.Parameters[item.index].ViewOnPO"
+                                               @onchange="@(async(e)=> await OnViewOnPOChange(e,item.index))" />
+                                    }
+                                    else  @if (itemParameter.Parameters[item.index].ViewOnPO == true)
+                                    {
+                                        <input type="checkbox" value="@itemParameter.Parameters[item.index].ViewOnPO"
+                                               @onchange="@(async(e)=> await OnViewOnPOChange(e,item.index))" checked />
+                                    }
+                                </td>
+                                <td>
+                                    <span class="btn btn-danger" @onclick="@(async (e) =>  RemoveParameter( item.index))">X</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <button type="button" class="btn btn-primary" @onclick="AddField">Add Row</button>
+                <br />
+                <br />
+                <!-- Footer Buttons -->
+                <div class="row">
+                    <div class="col-md-12 text-end">
+                        <button type="button" class="btn btn-primary" @onclick="SaveParameters">Save</button>
+                        <button type="button" class="btn btn-secondary" @onclick="ResetForm">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <br />
+        <div class="container-fluid">
+            @if (lstItemParameters == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+            <br />
+            <h3 class="text-center">Item Link Parameter Template List</h3>
+
+                <table class="table table-striped align-middle table-bordered text-center">
+                    <thead class="table-success">
+                        <tr>
+                            <th>Code</th>
+                            <th>Item Code</th>
+                            <th>Item Description</th>
+                            <th>Effective From</th>
+                            <th>EffectiveTo</th>
+                            <th>NumberOfSample</th>
+                            <th>Production</th>
+                            <th>ProcessStage</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sc in lstItemParameters)
+                        {
+                            <tr>
+                                <td>@sc.Code</td>
+                                <td>@sc.ItemCode</td>
+                                <td>@sc.ItemDescription</td>
+                                <td>@sc.EffectiveFrom</td>
+                                <td>@sc.EffectiveTo</td>
+                                <td>@sc.NumberOfSample</td>
+                                <td>@sc.Production</td>
+                                <td>@sc.ProcessStage</td>
+                                <td>
+                                    <button class="btn btn-outline-danger" @onclick="() => EditData(sc)">Edit</button>
+                                </td>
+                            </tr>
+
+                        }
+                    </tbody>
+                </table>
+
+            }
+        </div>
+    
+</div>
+@if (isModalVisible)
+{
+    @* <div class="modal fade show" tabindex="3" style="display:block;" role="dialog"> *@
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select a Item</h5>
+                    <button type="button" class="close" @onclick="CloseModal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                                   @bind-Value="searchTerm"
+                                   @oninput="FilterItems"
+                                   @onkeydown="HandleKeyDown" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm))
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->X
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <th>Item Code</th>
+                                    <th>Item Name</th>
+                                    <th>Item Group Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredItem!.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Find !</h5></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var item in filteredItem)
+                                    {
+                                        <tr @onclick="() => SelectItem(item)"
+                                            class="@(item == highlightedItem ? "table-active" : "")">
+                                            <td>@item.ItemCode</td>
+                                            <td>@item.ItemName</td>
+                                            <td>@item.ItemGroupName</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+}
+
+@* <h3>ItemLinkParameterTemplate</h3> *@
+
+@code {
+    public bool isModalVisible { get; set; } = false;
+    public bool isTableVisible { get; set; } = false;
+    public SAPbobsCOM.Recordset oRs_Text { get; set; }
+    public string Code { get; set; }
+    protected ItemModel selectedItem = new ItemModel();
+    public string searchTerm = string.Empty;
+
+    protected List<ItemModel> filteredItem = new List<ItemModel>();
+    protected List<ItemModel> ItemList = new List<ItemModel>();
+    protected ItemModel highlightedItem;
+
+    string AutoCode = string.Empty;
+    private ItemParameter itemParameter = new ItemParameter();
+    private List<ParameterRow> availableNames = new List<ParameterRow>();
+    private List<ParameterRow> lstParameterRows = new List<ParameterRow>();
+    public List<ProcessStage> lstProcessStage = new List<ProcessStage>();
+    private List<ItemParameter> lstItemParameters = new List<ItemParameter>();
+    private bool isEditMode = false;
+    private bool isEnableField = false;
+
+    private async Task SaveParameters()
+    {
+        await DeleteParameters();
+        await InsertParameter();
+
+        // ResetForm();
+
+    }
+
+    private void RemoveParameter(int index)
+    {
+        itemParameter.Parameters.RemoveAt(index);
+        if (itemParameter.Parameters.Count() > 0)
+        {
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteParameters()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                // Handle exception (log it or display error message)
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = null;
+
+            try
+            {
+
+                oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+                string strSql = $"DELETE FROM [dbo].[@TRIZ_QC_IPL1] WHERE Code = '{Code}'";
+
+                oRs.DoQuery(strSql);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (oRs != null)
+                {
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(oRs);
+                    oRs = null;
+                }
+            }
+        }
+    }
+
+
+    private void Close()
+    {
+        itemParameter.Code = string.Empty;
+        itemParameter.ItemCode = string.Empty;
+        itemParameter.ItemDescription = string.Empty;
+        itemParameter.EffectiveFrom = System.DateTime.Now;
+        itemParameter.EffectiveTo = System.DateTime.Now;
+        itemParameter.NumberOfSample = 0;
+        itemParameter.Production = false;
+        itemParameter.ProcessStage = "Select";
+        isEditMode = true;
+        isEnableField = true;
+    }
+    protected async Task OpenModal()
+    {
+        try
+        {
+            await GetItem();
+        }
+        catch(Exception e)
+        {
+
+        }
+        finally
+        {
+            AppConfig.SAPDIDisconnect();
+        }
+        isModalVisible = true;
+
+    }
+    protected void CloseModal()
+    {
+        isModalVisible = false;
+    }
+    protected void FilterItems(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? string.Empty;
+
+        filteredItem = ItemList!
+            .Where(v =>
+            v.ItemCode!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            v.ItemName!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+            v.ItemGroupName!.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (filteredItem.Count > 0)
+        {
+            highlightedItem = filteredItem[0];
+        }
+    }
+
+    protected void ClearSearchTerm()
+    {
+        searchTerm = string.Empty;
+        filteredItem = ItemList;
+    }
+
+    protected void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" || e.Key == "Tab")
+        {
+            SelectItem(highlightedItem!);
+        }
+    }
+    protected async void SelectItem(ItemModel item)
+    {
+        selectedItem = item;
+        itemParameter.ItemDescription = item.ItemName;
+        if (itemParameter.ProcessStage == string.Empty)
+        {
+            // await JsRuntime.InvokeVoidAsync("alert", "Plz Select Process Stage");
+            return;
+        }
+        else
+        {
+            await GetParameterRowByItemCode(item.ItemCode, itemParameter.ProcessStage);
+        }
+
+        CloseModal();
+    }
+
+    protected async Task GetItem()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "SELECT A.ItemCode as ItemCode, A.ItemName as ItemName,B.ItmsGrpNam as ItemGroupName from OITM A  Inner Join OITB B on A.ItmsGrpCod = B.ItmsGrpCod where A.PrchseItem = 'Y' and A.InvntItem = 'Y' And frozenFor = 'N' and ISNULL(U_QCFLAG,'N')='Y' ";
+            oRs.DoQuery(strSql);
+
+            if (oRs.RecordCount > 0)
+            {
+                ItemList.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ItemModel
+                        {
+                            ItemCode = oRs.Fields.Item("ItemCode").Value.ToString(),
+                            ItemName = oRs.Fields.Item("ItemName").Value.ToString(),
+                            ItemGroupName = oRs.Fields.Item("ItemGroupName").Value.ToString()
+
+                        };
+                    ItemList.Add(option);
+                    oRs.MoveNext();
+                }
+                filteredItem = ItemList;
+            }
+        }
+    }
+
+    private void AddField()
+    {
+        try
+        {
+            var newParameter = new ParameterRow();
+            itemParameter.Parameters.Add(newParameter);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+
+            throw ex;
+        }
+    }
+
+    protected async Task GetMaxCode()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "Select Isnull(Max(CAST(Code as INT)),0)+1 as Code From [@TRIZ_QC_OIPL]";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                AutoCode = oRs.Fields.Item("Code").Value.ToString();
+            }
+        }
+    }
+
+
+
+    protected async Task ItemCodeInsetCheck()
+    {
+        string strEffectiveFrom = itemParameter.EffectiveFrom.ToString().Split(" ")[0];
+        string strEffectiveFrom1 = strEffectiveFrom.Split("-")[2] + strEffectiveFrom.Split("-")[1] + strEffectiveFrom.Split("-")[0];
+        string strEffectiveTo = itemParameter.EffectiveTo.ToString().Split(" ")[0];
+        string strEffectiveTo1 = strEffectiveTo.Split("-")[2] + strEffectiveTo.Split("-")[1] + strEffectiveTo.Split("-")[0];
+
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "SELECT CODE FROM [@Triz_QC_OIPL] WHERE U_ITEMCODE = '" + selectedItem.ItemCode +
+                 "' AND U_ProcessStage = '" + itemParameter.ProcessStage +
+                 "' AND (U_FROMDATE <= '" + strEffectiveFrom1 +
+                 "' AND U_TODATE >= '" + strEffectiveFrom1 +
+                 "') AND (U_FROMDATE <= '" + strEffectiveTo1 +
+                 "' AND U_TODATE >= '" + strEffectiveTo1 + "')";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                AutoCode = oRs.Fields.Item("Code").Value.ToString();
+            }
+            else
+            {
+                AutoCode = string.Empty;
+            }
+        }
+    }
+
+    private async Task InsertParameter()
+    {
+        if (isEditMode == true)
+        {
+            if (AppConfig.diCompany == null)
+            {
+                try
+                {
+                    AppConfig.diCompany = AppConfig.SAPDIConnection();
+                    if (AppConfig.diCompany.Connected == false)
+                    {
+                        int connectionResult = AppConfig.diCompany.Connect();
+                        if (connectionResult != 0)
+                        {
+                            string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                            throw new Exception("Failed to connect to SAP: " + errMsg);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return;
+                }
+            }
+            if (AppConfig.diCompany != null)
+            {
+                string AddUpdateFlag = string.Empty;
+                SAPbobsCOM.GeneralService oGeneralService = null;
+                SAPbobsCOM.GeneralData oGeneralData = null;
+                SAPbobsCOM.GeneralData oChild = null;
+                SAPbobsCOM.GeneralDataCollection oChildren = null;
+                SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+                SAPbobsCOM.CompanyService oCompanyService = null;
+                try
+                {
+                    oCompanyService = AppConfig.diCompany.GetCompanyService();
+                    oGeneralService = (SAPbobsCOM.GeneralService)oCompanyService.GetGeneralService("TRIZ_QC_OIPL");
+
+                    SAPbobsCOM.GeneralDataParams generalDataParams = (SAPbobsCOM.GeneralDataParams)oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralDataParams);
+
+                    generalDataParams.SetProperty("Code", itemParameter.Code);
+                    SAPbobsCOM.GeneralData existingData = oGeneralService.GetByParams(generalDataParams);
+
+                    if (existingData != null)
+                    {
+                        if (selectedItem.ItemCode == null || selectedItem.ItemCode == string.Empty)
+                        {
+                            existingData.SetProperty("U_ItemCode", selectedItem.ItemCode);
+                        }
+                        else
+                        {
+                            existingData.SetProperty("U_ItemCode", itemParameter.ItemCode);
+                        }
+                        existingData.SetProperty("U_ItemName", itemParameter.ItemDescription);
+                        existingData.SetProperty("U_FromDate", itemParameter.EffectiveFrom);
+                        existingData.SetProperty("U_ToDate", itemParameter.EffectiveTo);
+                        existingData.SetProperty("U_ProcessStage", itemParameter.ProcessStage);
+                        existingData.SetProperty("U_SampleNo", itemParameter.NumberOfSample);
+                        if (itemParameter.Production == false || itemParameter.strProduction == "N")
+                        {
+                            existingData.SetProperty("U_ProdFlag", itemParameter.strProduction);
+                        }
+                        else
+                        {
+                            existingData.SetProperty("U_ProdFlag", itemParameter.strProduction);
+                        }
+                        oChildren = existingData.Child("TRIZ_QC_IPL1");
+
+                        for (int i = oChildren.Count - 1; i >= 0; i--)
+                        {
+                            oChildren.Remove(i);
+                        }
+
+                        foreach (var parameterRow in itemParameter.Parameters)
+                        {
+                            SAPbobsCOM.GeneralData child = oChildren.Add();
+                            child.SetProperty("U_ParmCode", parameterRow.Code);
+                            child.SetProperty("U_ParmDesc", parameterRow.Name);
+                            child.SetProperty("U_ParmType", parameterRow.Type);
+                            child.SetProperty("U_StandValue", Convert.ToDouble(parameterRow.Standard));
+                            child.SetProperty("U_AcceptMinValue", Convert.ToDouble(parameterRow.MinValue));
+                            child.SetProperty("U_AcceptMaxValue", Convert.ToDouble(parameterRow.MaxValue));
+                            child.SetProperty("U_HoldMinValue", Convert.ToDouble(parameterRow.HoldMinValue));
+                            child.SetProperty("U_HoldMaxValue", Convert.ToDouble(parameterRow.HoldMaxValue));
+                            child.SetProperty("U_RejMinValue", Convert.ToDouble(parameterRow.RejMinValue));
+                            child.SetProperty("U_RejMaxValue", Convert.ToDouble(parameterRow.RejMaxValue));
+
+                            if (parameterRow.Mandatory == true)
+                            {
+                                child.SetProperty("U_Mandatory", "Y");
+                            }
+                            else if (parameterRow.Mandatory == false)
+                            {
+                                child.SetProperty("U_Mandatory", "N");
+                            }
+                            child.SetProperty("U_Sequence", Convert.ToInt32(parameterRow.Sequence));
+                            if (parameterRow.ShowOnPrint == false)
+                            {
+                                child.SetProperty("U_ShowOnPrint", "N");
+                            }
+                            else
+                            {
+                                child.SetProperty("U_ShowOnPrint", "Y");
+                            }
+                            if (parameterRow.AfterBeforeGRN == null || parameterRow.AfterBeforeGRN == string.Empty)
+                            {
+                                child.SetProperty("U_ABGRN", "A");
+                            }
+                            else
+                            {
+                                if (parameterRow.AfterBeforeGRN == "A")
+                                {
+                                    child.SetProperty("U_ABGRN", "A");
+                                }
+                                else if (parameterRow.AfterBeforeGRN == "B")
+                                {
+                                    child.SetProperty("U_ABGRN", "B");
+                                }
+                            }
+                            if (parameterRow.ViewOnPO == true)
+                            {
+                                child.SetProperty("U_ShowOnPO", "Y");
+                            }
+                            else if (parameterRow.ViewOnPO == false)
+                            {
+                                child.SetProperty("U_ShowOnPO", "N");
+                            }
+                        }
+                        oGeneralService.Update(existingData);
+                        await JsRuntime.InvokeVoidAsync("alert", "Data updated successfully");
+                    }
+                    else
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Record not found for updating.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                    await JsRuntime.InvokeVoidAsync("alert", "Error occurred: " + sapError);
+                }
+            }
+        }
+        else if (isEditMode == false)
+        {
+            await ItemCodeInsetCheck();
+            if (AutoCode == null || AutoCode == string.Empty)
+            {
+                if (AppConfig.diCompany == null)
+                {
+                    try
+                    {
+                        AppConfig.diCompany = AppConfig.SAPDIConnection();
+                        if (AppConfig.diCompany.Connected == false)
+                        {
+                            int connectionResult = AppConfig.diCompany.Connect();
+                            if (connectionResult != 0)
+                            {
+                                string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                                throw new Exception("Failed to connect to SAP: " + errMsg);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        //errorMessage = ex.Message;
+                        return;
+                    }
+                }
+                if (AppConfig.diCompany != null)
+                {
+                    string AddUpdateFlag = string.Empty;
+                    SAPbobsCOM.GeneralService oGeneralService = null;
+                    SAPbobsCOM.GeneralData oGeneralData = null;
+                    SAPbobsCOM.GeneralData oChild = null;
+                    SAPbobsCOM.GeneralDataCollection oChildren = null;
+                    SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+                    SAPbobsCOM.CompanyService oCompanyService = null;
+
+                    try
+                    {
+                        oCompanyService = AppConfig.diCompany.GetCompanyService();
+                        oGeneralService = oCompanyService.GetGeneralService("TRIZ_QC_OIPL");
+                        oGeneralData = ((SAPbobsCOM.GeneralData)(oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralData)));
+                        GetMaxCode();
+                        oGeneralData.SetProperty("Code", AutoCode);
+                        if (selectedItem.ItemCode == null || selectedItem.ItemCode == string.Empty)
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Select or Insert Item Code");
+                            //return;
+                        }
+                        else
+                        {
+                            oGeneralData.SetProperty("U_ItemCode", selectedItem.ItemCode);
+                            if (itemParameter.ItemDescription == null || itemParameter.ItemDescription == string.Empty)
+                            {
+                                await JsRuntime.InvokeVoidAsync("alert", "Insert Item Name");
+                                return;
+                            }
+                            else
+                            {
+                                oGeneralData.SetProperty("U_ItemName", itemParameter.ItemDescription);
+
+                                oGeneralData.SetProperty("U_FromDate", itemParameter.EffectiveFrom);
+                                oGeneralData.SetProperty("U_ToDate", itemParameter.EffectiveTo);
+                                if (itemParameter.ProcessStage == string.Empty || itemParameter.ProcessStage == null)
+                                {
+                                    await JsRuntime.InvokeVoidAsync("alert", "Select Stage");
+                                    // return;
+                                }
+                                else
+                                {
+                                    oGeneralData.SetProperty("U_ProcessStage", itemParameter.ProcessStage);
+                                    if (itemParameter.NumberOfSample == 0)
+                                    {
+                                        await JsRuntime.InvokeVoidAsync("alert", "Value Must Greater than 0");
+                                        //return;
+                                    }
+                                    else
+                                    {
+                                        oGeneralData.SetProperty("U_SampleNo", itemParameter.NumberOfSample);
+                                        if (itemParameter.Production == false)
+                                        {
+                                            oGeneralData.SetProperty("U_ProdFlag", "N");
+                                        }
+                                        else
+                                        {
+                                            oGeneralData.SetProperty("U_ProdFlag", "Y");
+                                        }
+
+                                        oChildren = oGeneralData.Child("TRIZ_QC_IPL1");
+                                        foreach (var parameterRow in itemParameter.Parameters)
+                                        {
+                                            SAPbobsCOM.GeneralData child = oChildren.Add();
+                                            child.SetProperty("U_ParmCode", parameterRow.Code);
+                                            child.SetProperty("U_ParmDesc", parameterRow.Name);
+                                            if (parameterRow.Type == "Logical")
+                                            {
+                                                child.SetProperty("U_ParmType", "L");
+                                            }
+                                            else if (parameterRow.Type == "Numerical")
+                                            {
+                                                child.SetProperty("U_ParmType", "N");
+                                            }
+
+                                            child.SetProperty("U_StandValue", Convert.ToDouble(parameterRow.Standard));
+                                            child.SetProperty("U_AcceptMinValue", Convert.ToDouble(parameterRow.MinValue));
+                                            child.SetProperty("U_AcceptMaxValue", Convert.ToDouble(parameterRow.MaxValue));
+                                            child.SetProperty("U_HoldMinValue", Convert.ToDouble(parameterRow.HoldMinValue));
+                                            child.SetProperty("U_HoldMaxValue", Convert.ToDouble(parameterRow.HoldMaxValue));
+                                            child.SetProperty("U_RejMinValue", Convert.ToDouble(parameterRow.RejMinValue));
+                                            child.SetProperty("U_RejMaxValue", Convert.ToDouble(parameterRow.RejMaxValue));
+
+                                            if (parameterRow.Mandatory == true)
+                                            {
+                                                child.SetProperty("U_Mandatory", "Y");
+                                            }
+                                            else if (parameterRow.Mandatory == false)
+                                            {
+                                                child.SetProperty("U_Mandatory", "N");
+                                            }
+                                            int x = itemParameter.Parameters.Count();
+                                            child.SetProperty("U_Sequence", Convert.ToInt32(parameterRow.Sequence));
+                                            if (parameterRow.ShowOnPrint == false)
+                                            {
+                                                child.SetProperty("U_ShowOnPrint", "N");
+                                            }
+                                            else
+                                            {
+                                                child.SetProperty("U_ShowOnPrint", "Y");
+                                            }
+                                            if (parameterRow.AfterBeforeGRN == null || parameterRow.AfterBeforeGRN == string.Empty)
+                                            {
+                                                child.SetProperty("U_ABGRN", "A");
+                                            }
+                                            else
+                                            {
+                                                if (parameterRow.AfterBeforeGRN == "After")
+                                                {
+                                                    child.SetProperty("U_ABGRN", "A");
+                                                }
+                                                else if (parameterRow.AfterBeforeGRN == "Before")
+                                                {
+                                                    child.SetProperty("U_ABGRN", "B");
+                                                }
+                                            }
+                                            if (parameterRow.ViewOnPO == true)
+                                            {
+                                                child.SetProperty("U_ShowOnPO", "Y");
+                                            }
+                                            else if (parameterRow.ViewOnPO == false)
+                                            {
+                                                child.SetProperty("U_ShowOnPO", "N");
+                                            }
+                                        }
+                                        oGeneralParams = oGeneralService.Add(oGeneralData);
+                                        string Result = System.Convert.ToString(oGeneralParams.GetProperty("Code"));
+                                        await JsRuntime.InvokeVoidAsync("alert", "Data Saved successfully");
+                                        await GetItemParameter();
+                                        StateHasChanged();
+                                        ResetForm();
+                                    }
+                                }
+
+                            }
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                        await JsRuntime.InvokeVoidAsync("alert", "Error Occured" + sapError);
+                    }
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "Connection Problem");
+                    // return;
+                }
+            }
+            else
+            {
+                //await JsRuntime.InvokeVoidAsync("alert", "You cann't insert Value");
+                //return;
+            }
+        }
+
+    }
+
+    private async Task GetProcessStage()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "select code,Name,U_Sequence from [@TRIZ_QC_OPST] order by U_Sequence asc";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstProcessStage.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ProcessStage
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            Name = oRs.Fields.Item("Name").Value.ToString()
+
+                        };
+                    lstProcessStage.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+
+            
+        }
+    }
+
+    private void OnProcessStageChanged(ChangeEventArgs e)
+    {
+        var selectedValue = e.Value.ToString();
+        itemParameter.ProcessStage = selectedValue;
+    }
+    private void OnProductionChanged(ChangeEventArgs e)
+    {
+        itemParameter.Production = (bool)e.Value;
+
+
+    }
+    private async Task GetParameterMaster()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            //  string strSql = "SELECT Name FROM [dbo].[@TRIZ_QC_OPAR] WHERE U_Active = 'Y'";
+            string strSql = "SELECT Name FROM [dbo].[@TRIZ_QC_OPAR]";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                availableNames.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ParameterRow
+                        {
+                            Name = oRs.Fields.Item("Name").Value.ToString()
+                        };
+
+                    availableNames.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+            
+        }
+    }
+
+    private async Task GetItemParameter()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            //  string strSql = "SELECT Name FROM [dbo].[@TRIZ_QC_OPAR] WHERE U_Active = 'Y'";
+            string strSql = "SELECT Code,Name,U_ItemCode,U_ItemName,U_FromDate,U_ToDate,U_SampleNo,U_ProdFlag,U_ProcessStage FROM [dbo].[@TRIZ_QC_OIPL]";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstItemParameters.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ItemParameter
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            ItemCode = oRs.Fields.Item("U_ItemCode").Value.ToString(),
+                            ItemDescription = oRs.Fields.Item("U_ItemName").Value.ToString(),
+                            EffectiveFrom = Convert.ToDateTime(oRs.Fields.Item("U_FromDate").Value.ToString()),
+                            EffectiveTo = Convert.ToDateTime(oRs.Fields.Item("U_ToDate").Value.ToString()),
+                            NumberOfSample = Convert.ToInt32(oRs.Fields.Item("U_SampleNo").Value.ToString()),
+                            // Production =Convert.ToBoolean(oRs.Fields.Item("U_ProdFlag").Value.ToString()),
+                            strProduction = oRs.Fields.Item("U_ProdFlag").Value.ToString(),
+                            ProcessStage = oRs.Fields.Item("U_ProcessStage").Value.ToString()
+                        };
+
+                    lstItemParameters.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+
+        }
+    }
+
+    private async Task GetParameterRow(string code)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+
+            string strSql = "SELECT U_ParmCode,U_ParmDesc,U_ParmType,CASE WHEN U_ParmType = 'L' THEN 'Logical' WHEN U_ParmType = 'N' THEN 'Numerical' ELSE U_ParmType END AS U_ParmType1,U_StandValue,U_AcceptMinValue,U_AcceptMaxValue,U_HoldMinValue,U_HoldMaxValue,U_RejMinValue,U_RejMaxValue,U_Sequence,U_Mandatory, U_ShowOnPrint,CASE WHEN U_ShowOnPrint = 'Y' THEN 1 WHEN U_ShowOnPrint = 'N' THEN 0 ELSE U_ShowOnPrint END AS U_ShowOnPrint1,U_ABGRN,CASE WHEN U_ABGRN = 'A' THEN 'After' WHEN U_ABGRN = 'B' THEN 'Before' ELSE U_ABGRN END AS U_ABGRN1,CASE WHEN U_ShowOnPO = 'Y' THEN 1 WHEN U_ShowOnPO = 'N' THEN 0 ELSE U_ShowOnPO END AS U_ShowOnPO1,U_ShowOnPO  FROM [dbo].[@TRIZ_QC_IPL1] where Code='" + code + "'";
+            oRs.DoQuery(strSql);
+
+            Code = code;
+            oRs_Text = oRs;
+            if (oRs.RecordCount > 0)
+            {
+                lstParameterRows.Clear();
+                itemParameter.Parameters.Clear();
+                while (!oRs.EoF)
+                {
+                    var option = new ParameterRow
+                        {
+                            Code = oRs.Fields.Item("U_ParmCode").Value.ToString(),
+                            Name = oRs.Fields.Item("U_ParmDesc").Value.ToString(),
+                            Type = oRs.Fields.Item("U_ParmType").Value.ToString(),
+                            Type1 = oRs.Fields.Item("U_ParmType1").Value.ToString(),
+                            Standard = Convert.ToDecimal(oRs.Fields.Item("U_StandValue").Value.ToString()),
+                            MinValue = Convert.ToDecimal(oRs.Fields.Item("U_AcceptMinValue").Value.ToString()),
+                            MaxValue = Convert.ToDecimal(oRs.Fields.Item("U_AcceptMaxValue").Value.ToString()),
+                            HoldMinValue = Convert.ToDecimal(oRs.Fields.Item("U_HoldMinValue").Value.ToString()),
+                            HoldMaxValue = Convert.ToDecimal(oRs.Fields.Item("U_HoldMaxValue").Value.ToString()),
+                            RejMinValue = Convert.ToDecimal(oRs.Fields.Item("U_RejMinValue").Value.ToString()),
+                            RejMaxValue = Convert.ToDecimal(oRs.Fields.Item("U_RejMaxValue").Value.ToString()),
+                            Sequence = Convert.ToInt32(oRs.Fields.Item("U_Sequence").Value.ToString()),
+                            strMandatory = oRs.Fields.Item("U_Mandatory").Value.ToString(),
+                            strShowOnPrint = oRs.Fields.Item("U_ShowOnPrint").Value.ToString(),
+                            AfterBeforeGRN = oRs.Fields.Item("U_ABGRN").Value.ToString(),
+                            AfterBeforeGRN1 = oRs.Fields.Item("U_ABGRN1").Value.ToString(),
+                            strViewOnPO = oRs.Fields.Item("U_ShowOnPO").Value.ToString()
+
+                        };
+                    if (oRs.Fields.Item("U_Mandatory").Value.ToString() == "N")
+                    {
+                        option.Mandatory = false;
+                    }
+                    else if (oRs.Fields.Item("U_Mandatory").Value.ToString() == "Y")
+                    {
+                        option.Mandatory = true;
+                    }
+                    if (oRs.Fields.Item("U_ShowOnPrint").Value.ToString() == "N")
+                    {
+                        option.ShowOnPrint = false;
+                    }
+                    else if (oRs.Fields.Item("U_ShowOnPrint").Value.ToString() == "Y")
+                    {
+                        option.ShowOnPrint = true;
+                    }
+                    if (oRs.Fields.Item("U_ShowOnPO").Value.ToString() == "N")
+                    {
+                        option.ViewOnPO = false;
+                    }
+                    else if (oRs.Fields.Item("U_ShowOnPO").Value.ToString() == "Y")
+                    {
+                        option.ViewOnPO = true;
+                    }
+                    lstParameterRows.Add(option);
+                    itemParameter.Parameters.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+            else
+            {
+                itemParameter.Parameters.Clear();
+            }
+        }
+    }
+
+    private async Task GetParameterRowByItemCode(string ItemCode, string strProcessStage)
+    {
+        if (strProcessStage == string.Empty || strProcessStage == null)
+        {
+            //await JsRuntime.InvokeVoidAsync("alert", "Plz Select Process Stage");
+            return;
+        }
+        else
+        {
+            if (AppConfig.diCompany == null)
+            {
+                try
+                {
+                    AppConfig.diCompany = AppConfig.SAPDIConnection();
+                }
+                catch (Exception ex)
+                {
+                    return;
+                }
+            }
+            if (AppConfig.diCompany != null)
+            {
+                SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+                string strSql = "SELECT U_ParmCode,U_ParmDesc,U_ParmType,CASE  WHEN U_ParmType = 'N' THEN 'Numerical' WHEN U_ParmType = 'L' THEN 'Logical'  ELSE U_ParmType  END AS U_ParmType1,U_StandValue,U_AcceptMinValue,U_AcceptMaxValue,U_HoldMinValue,U_HoldMaxValue,U_RejMinValue,U_RejMaxValue,U_Sequence,U_Mandatory, U_ShowOnPrint,U_ABGRN,U_ShowOnPO FROM [dbo].[@TRIZ_QC_IPL1] ip inner join [dbo].[@TRIZ_QC_OIPL] op on ip.Code = op.Code where op.U_ItemCode = '" + ItemCode + "' and op.U_ProcessStage = '" + strProcessStage + "'";
+                oRs.DoQuery(strSql);
+                if (oRs.RecordCount > 0)
+                {
+                    itemParameter.Parameters.Clear();
+                    while (!oRs.EoF)
+                    {
+                        var option = new ParameterRow
+                            {
+                                Code = oRs.Fields.Item("U_ParmCode").Value.ToString(),
+                                Name = oRs.Fields.Item("U_ParmDesc").Value.ToString(),
+                                Type = oRs.Fields.Item("U_ParmType").Value.ToString(),
+                                Type1 = oRs.Fields.Item("U_ParmType1").Value.ToString(),
+                                Standard = Convert.ToDecimal(oRs.Fields.Item("U_StandValue").Value.ToString()),
+                                MinValue = Convert.ToDecimal(oRs.Fields.Item("U_AcceptMinValue").Value.ToString()),
+                                MaxValue = Convert.ToDecimal(oRs.Fields.Item("U_AcceptMaxValue").Value.ToString()),
+                                HoldMinValue = Convert.ToDecimal(oRs.Fields.Item("U_HoldMinValue").Value.ToString()),
+                                HoldMaxValue = Convert.ToDecimal(oRs.Fields.Item("U_HoldMaxValue").Value.ToString()),
+                                RejMinValue = Convert.ToDecimal(oRs.Fields.Item("U_RejMinValue").Value.ToString()),
+                                RejMaxValue = Convert.ToDecimal(oRs.Fields.Item("U_RejMaxValue").Value.ToString()),
+                                Sequence = Convert.ToInt32(oRs.Fields.Item("U_Sequence").Value.ToString()),
+                                strMandatory = oRs.Fields.Item("U_Mandatory").Value.ToString(),
+                                strShowOnPrint = oRs.Fields.Item("U_ShowOnPrint").Value.ToString(),
+                                AfterBeforeGRN = oRs.Fields.Item("U_ABGRN").Value.ToString(),
+                                strViewOnPO = oRs.Fields.Item("U_ShowOnPO").Value.ToString()
+                            };
+                        itemParameter.Parameters.Add(option);
+                        oRs.MoveNext();
+                    }
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No Data Available");
+                    itemParameter.Parameters.Clear();
+                }
+            }
+        }
+    }
+
+    private async void EditData(ItemParameter data)
+    {
+        isEnableField = true;
+        isEditMode = true;
+        isTableVisible = true;
+        itemParameter.Code = data.Code;
+        selectedItem.ItemCode = data.ItemCode;
+        itemParameter.ItemCode = data.ItemCode;
+        itemParameter.ItemDescription = data.ItemDescription;
+        itemParameter.EffectiveFrom = data.EffectiveFrom;
+        itemParameter.EffectiveTo = data.EffectiveTo;
+        itemParameter.NumberOfSample = data.NumberOfSample;
+        itemParameter.strProduction = data.strProduction;
+        if (itemParameter.strProduction == "Y")
+        {
+            itemParameter.Production = true;
+        }
+        else if (itemParameter.strProduction == "N")
+        {
+            itemParameter.Production = false;
+        }
+
+        itemParameter.ProcessStage = data.ProcessStage;
+
+        await GetParameterRow(data.Code);
+
+
+
+    }
+
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        // if (InitializationService.IsInitialized==true)
+        // {
+        //     return;
+        // }
+        await Task.Delay(1000);
+        //InitializationService.IsInitialized = false;
+
+
+        itemParameter.EffectiveFrom = System.DateTime.Now;
+        itemParameter.EffectiveTo = System.DateTime.Now;
+        itemParameter.Production = false;
+        try
+        {
+            await GetProcessStage();
+            await GetParameterMaster();
+            await GetItemParameter();
+        }
+        catch (Exception e)
+        {
+
+        }
+        finally
+        {
+            AppConfig.SAPDIDisconnect();
+        }
+    }
+    private async Task OnNameChange(ChangeEventArgs e, int index)
+    {
+        var selectedName = e.Value?.ToString();
+        int x = itemParameter.Parameters.Count();
+        for (int i = 0; i < x; i++)
+        {
+            if (itemParameter.Parameters[i].Name == selectedName)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "That Value cannot Selected");
+                return;
+            }
+        }
+        if (itemParameter.Parameters[0].Name == selectedName)
+        {
+            // await JsRuntime.InvokeVoidAsync("alert", "That Value cannot Selected");
+            // return;
+        }
+        else
+        {
+            if (index >= 0 && index < itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].Name = selectedName;
+            }
+            try
+            {
+                if (AppConfig.diCompany == null)
+                {
+                    try
+                    {
+                        AppConfig.diCompany = AppConfig.SAPDIConnection();
+                    }
+                    catch (Exception ex)
+                    {
+                        throw ex;
+                    }
+                }
+
+                if (AppConfig.diCompany != null)
+                {
+                    SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+                    string strSql = $"Select Code, Name,U_ParmType, case when U_ParmType='L' then 'Logical' else 'Numeric' End  U_ParmType1, U_StdText, U_ShowOnPrint, U_ABGRN,CASE WHEN U_ABGRN = 'A' THEN 'After' WHEN U_ABGRN = 'B' THEN 'Before' ELSE U_ABGRN END AS U_ABGRN1, U_ShowOnPO, U_Active, U_UpDown " +
+                                    $"From [@TRIZ_QC_OPAR] Where Name = '{selectedName}'";
+
+                    oRs.DoQuery(strSql);
+                    if (oRs.RecordCount > 0)
+                    {
+                        while (!oRs.EoF)
+                        {
+                            var option = new ParameterRow
+                                {
+                                    Code = oRs.Fields.Item("Code").Value.ToString(),
+                                    Name = oRs.Fields.Item("Name").Value.ToString(),
+                                    Type = oRs.Fields.Item("U_ParmType").Value.ToString(),
+                                    Type1 = oRs.Fields.Item("U_ParmType1").Value.ToString()
+                                };
+
+                            if (index >= 0 && index <= itemParameter.Parameters.Count)
+                            {
+                                itemParameter.Parameters[index] = option;
+                            }
+                            else
+                            {
+                                itemParameter.Parameters.Add(option);
+                            }
+                            oRs.MoveNext();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+    }
+    private async Task OnStandardChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            // Update only the selected row's value
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].Standard = newValue;
+            }
+        }
+        else
+        {
+
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for Standard.");
+
+        }
+
+
+    }
+
+    private async Task OnMinValueChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            // Update only the selected row's value
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].MinValue = newValue;
+            }
+        }
+        else
+        {
+
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for MinValue.");
+        }
+    }
+
+    private async Task OnMaxValueChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            // Update only the selected row's value
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].MaxValue = newValue;
+            }
+        }
+        else
+        {
+
+            await JsRuntime.InvokeVoidAsync("alert", "Invalid input for MaxValue.");
+        }
+    }
+
+    private async Task OnHoldMinValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].HoldMinValue = newValue;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid input for HoldMinValue.");
+        }
+    }
+
+
+    private async Task OnHoldMaxValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].HoldMaxValue = newValue;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid input for HoldMaxValue.");
+        }
+    }
+
+    private async Task OnRejMinValueChange(ChangeEventArgs e, int index)
+    {
+
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].RejMinValue = newValue;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid input for RejMinValue.");
+        }
+    }
+
+
+    private async Task OnRejMaxValueChange(ChangeEventArgs e, int index)
+    {
+        if (decimal.TryParse(e.Value.ToString(), out var newValue))
+        {
+
+            if (index >= 0 && index <= itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].RejMaxValue = newValue;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid input for RejMaxValue.");
+        }
+    }
+
+
+    private async Task OnMandatoryChange(ChangeEventArgs e, int index)
+    {
+        string selectedMandatory = string.Empty;
+        bool b = (bool)e.Value;
+        if (b == true)
+        {
+            selectedMandatory = "Y";
+        }
+        else
+        {
+            selectedMandatory = "N";
+        }
+        if (index >= 0 && index < itemParameter.Parameters.Count)
+        {
+            itemParameter.Parameters[index].Mandatory = b;
+            if (index > 0)
+            {
+                itemParameter.Parameters[index].Mandatory = b;
+            }
+        }
+    }
+
+
+    private async Task OnSequenceChange(ChangeEventArgs e, int index)
+    {
+        if (int.TryParse(e.Value.ToString(), out var newValue))
+        {
+
+            if (index >= 0 && index < itemParameter.Parameters.Count)
+            {
+                itemParameter.Parameters[index].Sequence = int.Parse(newValue.ToString());
+
+                if (index > 0)
+                {
+                    itemParameter.Parameters[index - 1].Sequence = int.Parse(newValue.ToString());
+                }
+
+
+            }
+        }
+        else
+        {
+            Console.WriteLine("Invalid input for Sequence.");
+        }
+    }
+
+
+    private async Task OnShowOnPrintChange(ChangeEventArgs e, int index)
+    {
+        string selectedShowOnPrint = string.Empty;
+        bool b = (bool)e.Value;
+        if (b == true)
+        {
+            selectedShowOnPrint = "Y";
+        }
+        else
+        {
+            selectedShowOnPrint = "N";
+        }
+        if (index >= 0 && index < itemParameter.Parameters.Count)
+        {
+            itemParameter.Parameters[index].ShowOnPrint = b;
+            if (index > 0)
+            {
+                itemParameter.Parameters[index].ShowOnPrint = b;
+            }
+        }
+    }
+
+
+    private async Task OnAfterBeforeGRNChange(ChangeEventArgs e, int index)
+    {
+
+        var selectedName = e.Value?.ToString();
+        if (index >= 0 && index < itemParameter.Parameters.Count)
+        {
+            itemParameter.Parameters[index].AfterBeforeGRN = selectedName.ToString();
+
+            if (index > 0)
+            {
+                itemParameter.Parameters[index].AfterBeforeGRN = selectedName.ToString();
+            }
+        }
+    }
+
+
+    private async Task OnViewOnPOChange(ChangeEventArgs e, int index)
+    {
+        string selectedViewOnPO = string.Empty;
+        bool b = (bool)e.Value;
+        if (b == true)
+        {
+            selectedViewOnPO = "Y";
+        }
+        else
+        {
+            selectedViewOnPO = "N";
+        }
+
+        if (index >= 0 && index < itemParameter.Parameters.Count)
+        {
+            itemParameter.Parameters[index].ViewOnPO = b;
+            if (index > 0)
+            {
+                itemParameter.Parameters[index].ViewOnPO = b;
+            }
+        }
+    }
+
+
+    private void ResetForm()
+    {
+
+        selectedItem = new ItemModel();
+        itemParameter = new ItemParameter();
+        isEnableField = false;
+
+        //lstItemParameters = new List<ItemParameter>();
+
+    }
+
+}

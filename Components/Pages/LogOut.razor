@@ -1,0 +1,38 @@
+﻿@page "/LogOutPage"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Models;
+@using SAPPortal.Components.Services;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms;
+@using Microsoft.EntityFrameworkCore;
+@inject HttpClient Http;
+@inject IJSRuntime JsRuntime;
+@inject ApplicationDbContext _dbContext;
+@rendermode InteractiveServer
+@inject SessionService SessionService
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if ((CommonSessionClass.UName) == String.Empty || CommonSessionClass.UName == null)
+        {
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+            logout();
+        }
+      
+    }
+    private void logout()
+    {
+        CommonSessionClass.IsAuthenticated = false;
+        CommonSessionClass.UName = string.Empty;
+        CommonSessionClass.UId = string.Empty;
+        CommonSessionClass.CompanyName = string.Empty;
+        CommonSessionClass.LogInTime = string.Empty;
+        NavigationManager.NavigateTo("logInPage");
+  
+    }
+   
+}

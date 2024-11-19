@@ -1,0 +1,491 @@
+﻿@page "/PurchaseOrder"
+@using SAPPortal.Models
+
+@inherits PurchaseOrderBase
+@rendermode InteractiveServer
+
+<PageTitle>Purchase Order</PageTitle>
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktdGq4KtT1c6qf3a96ZWmI1ELQ5HCe8y4mXKp4YG4" crossorigin="anonymous">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<style>
+
+    /* Highlight the textbox on hover */
+    input.form-control:hover {
+        border-color: #007bff; /* Change the border color on hover */
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Add a shadow on hover */
+        background-color: #f8f9fa; /* Slightly change background color */
+    }
+
+    /* Highlight the icon when hovering over the input group */
+    .input-group:hover .input-group-text {
+        border-color: #007bff; /* Match border color with input on hover */
+        background-color: #f8f9fa; /* Match background with input */
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+    }
+
+</style>
+
+
+<!-- Main Form -->
+
+<div class="card border-warning mb-4">
+    <div class="card-header">
+        <h5 class="card-title">Purchase Order</h5>
+    </div>
+    <form>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <!-- Vendor Id -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Vendor :</label>
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control" @bind="@selectedVendor.CardCode" placeholder="Select Vendor" readonly @onclick="OpenModal" />
+                                <!-- Icon placed inside the input group -->
+                                <span class="input-group-text" @onclick="OpenModal">
+                                    @*  <i class="fa-solid fa-arrow-right"></i> *@
+                                    <i class="fa-solid fa-angles-right fa-beat" style="color:#4c0ebe;"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Vendor Name -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Name :</label>
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" @bind="@selectedVendor.CardName" disabled />
+                            @* <InputSelect class="form-control" @bind-Value="selectedVendor.CardName" disabled /> *@
+                        </div>
+                    </div>
+                    <!-- Contact Person -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Contact Person :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@ContectPerson" disabled /> *@
+                            <input type="text" class="form-control" @bind="@Selected_PO_ItemDetails!.ContactPerson" disabled />
+                        </div>
+                    </div>
+                    <!-- Vendor Ref No -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Vendor Ref. No.:</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@VendorRefNo" disabled /> *@
+                            <input type="text" class="form-control" @bind="@Selected_PO_ItemDetails.VendorRefNo" disabled />
+                        </div>
+                    </div>
+                    <!-- Currency -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Currency :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@Currency" disabled /> *@
+                            <input type="text" class="form-control" @bind="@Selected_PO_ItemDetails.Currency" disabled />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <!-- No -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">No. :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@No" disabled /> *@
+                            <input type="text" class="form-control" @bind="@Selected_PO_ItemDetails.DocNumer" disabled />
+                        </div>
+                    </div>
+                    <!-- Status -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Status :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@Status" disabled /> *@
+                            <input type="text" class="form-control" @bind="@Selected_PO_ItemDetails.ParameterTaged" disabled />
+                        </div>
+                    </div>
+                    <!-- Posting Date -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Posting Date :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@PostingDate" disabled /> *@
+                            <input type="text" class="form-control"
+                                   value="@(Selected_PO_ItemDetails?.PostingDate != null ? Selected_PO_ItemDetails.PostingDate.Value.ToString("dd-MM-yyyy") : string.Empty)" disabled />
+                        </div>
+                    </div>
+                    <!-- Delivery Date -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Delivery Date :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@DeliveryDate" disabled /> *@
+                            <input type="text" class="form-control" value="@(Selected_PO_ItemDetails?.DeliveryDate != null ? Selected_PO_ItemDetails.DeliveryDate.Value.ToString("dd-MM-yyyy"): string.Empty)" disabled />
+                        </div>
+                    </div>
+                    <!-- Document Date -->
+                    <div class="row mb-2">
+                        <label class="col-md-4 col-form-label">Document Date :</label>
+                        <div class="col-md-8">
+                            @* <input type="text" class="form-control" value="@DocumentDate" disabled /> *@
+                            <input type="text" class="form-control" value="@(Selected_PO_ItemDetails?.DocumentDate !=null ? Selected_PO_ItemDetails.DocumentDate.Value.ToString("dd-MM-yyyy") :string.Empty)" disabled />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* @if (POItemDetailsList!.Count == 0)
+            {
+            <h5>Data Not Find</h5>
+            }
+            else
+            { *@
+            <div class="table-responsive mt-4">
+                <h5>PO Details</h5>
+                <table class="table table-hover table-bordered border-primary">
+                    <thead class="thead-light">
+                        <tr>
+                            <th scope="col">Serial No</th>
+                            <th scope="col">Document Entry</th>
+                            <th scope="col">Document No</th>
+                            <th scope="col">Posting Date</th>
+                            <th scope="col">Total Amount</th>
+                            @* <th scope="col">Parameter Taged</th> *@
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Open_PO_details!.Count() == 0)
+                        {
+                            <tr>
+                                <td colspan="5"><h5 style="text-align: center; color:brown;">Data Not Found !</h5></td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int SlNo = 1;
+                            @foreach (var item in Open_PO_details!)
+                            {
+                                <tr @onclick="()=> Select_PO_Details(item)"
+                                    class="@(selectedDocEntry == item.DocEntry ? "table-info" : "")">
+                                    <td>@SlNo</td>
+                                    <td>@item.DocEntry</td>
+                                    <td>@item.DocNumer</td>
+                                    <td>@item.PostingDate!.Value.ToString("dd-MM-yyyy")</td>
+                                    <td>@item.TotalAmount</td>
+                                    @*  <td>@item.ParameterTaged</td> *@
+                                </tr>
+                                SlNo++;
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @*  } *@
+
+            <!-- Data Table -->
+            <!-- Content Table -->
+            <div class="table-responsive mt-4">
+                <h5>Item Details</h5>
+                <table class="table table-hover table-bordered border-primary">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Serial No</th>
+                            <th>Line Num</th>
+                            <th>Document Entry</th>
+                            <th>Document No</th>
+                            <th>Item Code</th>
+                            <th>Item Description</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>TaxCode</th>
+                            <th>WarehouseCode</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (POItemDetailsList!.Count() == 0)
+                        {
+                            <tr>
+                                <td colspan="10"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                            </tr>
+                        }
+                        else
+                        {
+                            int serialNo = 1;
+                            @foreach (var POItem in POItemDetailsList)
+                            {
+                                <tr @onclick="()=> Select_POItem_Details(POItem)">
+                                    <td>@serialNo</td>
+                                    <td>@POItem.LineNum</td>
+                                    <td>@POItem.DocEntry</td>
+                                    <td>@POItem.DocNum</td>
+                                    <td>@POItem.ItemCode</td>
+                                    <td>@POItem.ItemDescription</td>
+                                    <td>@POItem.Quantity</td>
+                                    <td>@POItem.Price</td>
+                                    <td>@POItem.TaxCode</td>
+                                    <td>@POItem.WarehouseCode</td>
+                                </tr>
+                                serialNo++;
+                            }
+
+                        }
+
+
+                    </tbody>
+                </table>
+
+
+            </div>
+
+            @* <button type="button" class="btn btn-outline-success mt-4" @onclick="() => Save_PO_Item(ReloadOpenVendor!,Selected_PO_ItemDetails.DocEntry)">Save</button> *@
+            <button type="button" class="btn btn-outline-success mt-4" @onclick="() => Save_PO_Item(ReloadOpenVendor!,Selected_PO_ItemDetails.DocEntry)">Save</button>
+        </div>
+    </form>
+
+</div>
+
+<!-- Modal structure -->
+@if (isModalVisible)
+{
+    @* <div class="modal fade show" tabindex="3" style="display:block;" role="dialog"> *@
+    <div class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Select a Vendor</h5>
+                    <button type="button" class="close" @onclick="CloseModal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="position-relative mb-2">
+                        <!-- Search Textbox -->
+                        <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                                   @bind-Value="searchTerm"
+                                   @oninput="FilterItems"
+                                   @onkeydown="HandleKeyDown" />
+
+                        <!-- Clear Button (Icon inside the input) -->
+                        @if (!string.IsNullOrEmpty(searchTerm))
+                        {
+                            <button type="button" class="btn-clear" @onclick="ClearSearchTerm">
+                                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                            </button>
+                        }
+                    </div>
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <td>SL No</td>
+                                    <th>Vendor Id</th>
+                                    <th>Vendor Name</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (filteredVendor!.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="3"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    int VendorSlNo = 1;
+                                    @foreach (var vender in filteredVendor)
+                                    {
+                                        <tr @onclick="() => SelectItem(vender)"
+                                            class="@(vender == highlightedItem ? "table-active" : "")">
+                                            <td>@VendorSlNo</td>
+                                            <td>@vender.CardCode</td>
+                                            <td>@vender.CardName</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+                @* <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Close</button>
+            </div> *@
+            </div>
+        </div>
+    </div>
+
+    <!-- Backdrop -->
+    @*  <div class="modal-backdrop fade show"></div> *@
+}
+
+@if (IsModelOpenVisible_ForPOItemDetails)
+{
+    <div class="modal-overlay">
+        <div class="modal-dialog" style="max-width:80%;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">QC Params</h5>
+                    <button type="button" class="close" @onclick="CloseModal">
+                        &times;
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    @* <div class="position-relative mb-2">
+                <!-- Search Textbox -->
+                <InputText type="text" class="form-control pr-5" placeholder="Search..."
+                @bind-Value="searchTerm"
+                @oninput="FilterItems"
+                @onkeydown="HandleKeyDown" />
+
+                <!-- Clear Button (Icon inside the input) -->
+                @if (!string.IsNullOrEmpty(searchTerm))
+                {
+                <button type="button" class="btn-clear" @onclick="ClearSearchTerm">
+                <i class="fas fa-times"></i> <!-- Font Awesome icon -->
+                </button>
+                }
+                </div> *@
+                    <!-- Scrollable Table List of Items -->
+
+                    <div class="scrollable-table">
+
+                        <table class="table table-hover  table-bordered">
+                            <thead style="background-color:#f0f7f7">
+                                <tr>
+                                    <th>Serial No</th>
+                                    <th>Item Code</th>
+                                    <th>Item Name</th>
+                                    <th>Process Stage</th>
+                                    <th>Parameter Code</th> @* readOnly *@
+                                    <th>Parameter Name</th>
+                                    <th>Parameter Type</th>
+                                    <th>Sequence</th>
+                                    <th>Mandetory</th>
+                                    <th>Standard Value</th>
+                                    <th>Accepted Max Value</th>
+                                    <th>Accepted Min Value</th>
+                                    <th>Hold Max Value</th>
+                                    <th>Hold Min Value</th>
+                                    <th>Rejection Max Value</th>
+                                    <th>Rejection Min Value</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                @if (POItemParameterDetailsList!.Count() == 0)
+                                {
+                                    <tr>
+                                        <td colspan="17"><h5 style="text-align: center; color:brown">Data Not Found !</h5></td>
+                                    </tr>
+
+                                }
+                                else
+                                {
+                                    int serialNumber = 1;
+                                    @foreach (var item in POItemParameterDetailsList!)
+                                    {
+                                        <tr>
+                                            @if (item.IsEdit)
+                                            {
+                                                <!-- Editable Row -->
+                                                <td>@serialNumber</td>
+                                                <td>@item.ItemCode</td>
+                                                <td>@item.ItemDescription</td>
+                                                <td>@item.ProcessStage</td>
+                                                <td>@item.ParmCode</td>
+                                                <td>@item.ParmDesc</td>
+                                                <td>@item.ParmType</td>
+                                                <td><input @bind="item.Sequence" type="number" /></td>
+                                                <td>
+                                                    @if (item.Mandatory == "Y")
+                                                    {
+                                                        item.RequiredEdit = true;
+                                                        <input type="checkbox" @bind="item.RequiredEdit" @oninput="(e) => OnRequiredEditChange(e, item)" />
+                                                    }
+                                                    else
+                                                    {
+                                                        item.RequiredEdit = false;
+                                                        <input type="checkbox" @bind="item.RequiredEdit" @oninput="(e) => OnRequiredEditChange(e, item)" />
+                                                    }
+                                                </td>
+
+                                                <td><input @bind="item.StandValue" /></td>
+                                                <td><input @bind="item.AcceptMaxValue" /></td>
+                                                <td><input @bind="item.AcceptMinValue" /></td>
+                                                <td><input @bind="item.HoldMaxValue" /></td>
+                                                <td><input @bind="item.HoldMinValue" /></td>
+                                                <td><input @bind="item.RejMaxValue" /></td>
+                                                <td><input @bind="item.RejMinValue" /></td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <button type="button" @onclick="@(() => SaveEdit(item))" class="btn btn-success">
+                                                            <i class="fas fa-save fa-xm"></i>
+                                                        </button>
+                                                        <button type="button" @onclick="@(() => CancelEdit(item))" class="btn btn-danger">
+                                                            <i class="fas fa-times fa-xm"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            }
+                                            else
+                                            {
+                                                <td>@serialNumber</td>
+                                                <td>@item.ItemCode</td>
+                                                <td>@item.ItemDescription</td>
+                                                <td>@item.ProcessStage</td>
+                                                <td>@item.ParmCode</td>
+                                                <td>@item.ParmDesc</td>
+                                                <td>@item.ParmType</td>
+                                                <td>@item.Sequence</td>
+                                                @if (item.Mandatory == "Y")
+                                                {
+                                                    <td>Yes</td>
+                                                }
+                                                else
+                                                {
+                                                    <td>No</td>
+                                                }
+                                                <td>@item.StandValue</td>
+                                                <td>@item.AcceptMaxValue</td>
+                                                <td>@item.AcceptMinValue</td>
+                                                <td>@item.HoldMaxValue</td>
+                                                <td>@item.HoldMinValue</td>
+                                                <td>@item.RejMaxValue</td>
+                                                <td>@item.RejMinValue</td>
+                                                <td>
+                                                    <button type="button" @onclick="@(() => EditRow(item))" class="btn btn-primary">
+                                                        <i class="fas fa-edit fa-xm"></i>
+                                                    </button>
+
+                                                </td>
+
+                                            }
+                                        </tr>
+                                        serialNumber++;
+                                    }
+                                }
+
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-info" @onclick="() =>Save_PO_ItemDetailsByItemCode(SelectedItemDetails)">Update Parameter Details</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+@if (isLoading)
+{
+    <div class="overlay">
+        <div class="spinner"></div>
+    </div>
+}

@@ -1,0 +1,709 @@
+﻿@page "/ParameterMaster"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Components.Services
+@using SAPPortal.Models;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject ApplicationDbContext _dbContext
+@rendermode InteractiveServer
+@inject IHttpContextAccessor HttpContextAccessor
+@inject SAPConnection AppConfig
+@inject IServiceScopeFactory ServiceScopeFactory;
+
+<div class="container">
+    <h1 class="mb-3">Parameter Master</h1>
+
+    <EditForm style="width: 50%; display: inline-block;" Model="@parameterMaster" OnValidSubmit="AddParameterMaster" FormName="form1">
+        <DataAnnotationsValidator />
+
+        <div class="form-row mb-2">
+            <div class="col-md-6">
+                <label for="code">Code</label>
+                <InputText class="form-control form-control-sm" @bind-Value="parameterMaster.Code" disabled="@isEditMode" />
+            </div>
+            <div class="col-md-6">
+                <label for="name">Description</label>
+                <InputText class="form-control form-control-sm" @bind-Value="parameterMaster.Description" />
+            </div>
+        </div>
+
+        <div class="form-row mb-2">
+            <div class="col-md-6">
+                <label for="parameterType">Parameter Type</label>
+                <InputSelect class="form-control form-control-sm" @bind-Value="parameterMaster.ParameterType">
+                    <option value="Select" disabled>-- Select a Parameter Type --</option>
+                    <option value="L">Logical</option>
+                    <option value="N">Numerical</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-6">
+                <label for="viewOnPo">View On Purchase Order</label>
+                <InputSelect class="form-control form-control-sm" @bind-Value="parameterMaster.ViewOnPo">
+                    <option value="Y">Yes</option>
+                    <option value="N">No</option>
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="form-row mb-2">
+            <div class="col-md-6">
+                <label for="showOnPrint">Required On Print</label>
+                <InputSelect class="form-control form-control-sm" @bind-Value="parameterMaster.ShowOnPrint">
+                    <option value="Y">Yes</option>
+                    <option value="N">No</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-6">
+                <label for="grn">Applicable on GRN</label>
+                <InputSelect class="form-control form-control-sm" @bind-Value="parameterMaster.GRN">
+                    <option value="B">Before</option>
+                    <option value="A">After</option>
+                    <option value="N">None</option>
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="form-row mb-2">
+            <div class="col-md-6">
+                <label for="updown">Range Depending On</label>
+                <InputSelect class="form-control form-control-sm" @bind-Value="parameterMaster.UpDown">
+                    <option value="U">Upward</option>
+                    <option value="D">Downward</option>
+                    <option value="N">None</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-6">
+                <label for="name">Standard Text</label>
+                <InputText class="form-control form-control-sm" @bind-Value="parameterMaster.StdText" />
+            </div>
+        </div>
+        <div class="form-row mb-2">
+
+
+            <div class="col-md-12">
+                <br />
+
+                <InputCheckbox class="form-check-input" @bind-Value="parameterMaster.Active" style="margin-left: -4px;" />
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <label for="active"> Active</label>
+
+            </div>
+        </div>
+        <div class="form-row mb-2">
+            <div class="col-md-12">
+                <label>Status Taging</label>
+                <div>
+                    @foreach (var option in lstCheckboxOptions)
+                    {
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="option.IsSelected" />
+                            <label class="form-check-label" style="display:none;">@option.Code</label>
+                            <label class="form-check-label">@option.Name</label>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+
+        <div class="form-row">
+            <div class="col-md-6">
+                <button type="submit" class="btn btn-primary btn-sm w-100">Save</button>
+            </div>
+            <div class="col-md-6">
+                <button type="button" class="btn btn-secondary btn-sm w-100" @onclick="Close">Cancel</button>
+            </div>
+        </div>
+    </EditForm>
+</div>
+<br />
+<div class="container-fluid">
+    @if (lstParameterMasters == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <br />
+        <h3 class="text-center">Parameter List</h3>
+
+        <table class="table table-striped align-middle table-bordered text-center">
+            <thead class="table-success">
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th>Parameter Type</th>
+                    <th>Required On Print</th>
+                    <th>Applicable On GRN</th>
+                    <th>View On Purchase Order</th>
+                    <th>Range Depending On</th>
+                    <th>Standard Text</th>
+                    <th>Active</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sc in lstParameterMasters)
+                {
+                    <tr>
+                        <td>@sc.Code</td>
+                        <td>@sc.Description</td>
+                        <td>@sc.ParameterType1</td>
+                        <td>@sc.ShowOnPrint1</td>
+                        <td>@sc.GRN1</td>
+                        <td>@sc.ViewOnPo1</td>
+                        <td>@sc.UpDown1</td>
+                        <td>@sc.StdText</td>
+                        <td>@sc.strActive</td>
+                        <td>
+                            <button class="btn btn-outline-danger" @onclick="() => EditData(sc)">Edit</button>
+                        </td>
+                    </tr>
+
+                }
+            </tbody>
+        </table>
+
+    }
+</div>
+
+@if (isLoading)
+{
+    <div class="overlay">
+        <div class="spinner"></div>
+    </div>
+}
+
+
+@code {
+    public bool isLoading { get; set; } = false;
+
+    public class CheckboxOption
+    {
+        public string Code { get; set; }
+        public string Name { get; set; }
+        public bool IsSelected { get; set; }
+    }
+    private bool isEditMode = false;
+    public List<CheckboxOption> lstCheckboxOptions = new List<CheckboxOption>();
+
+    CheckboxOption checkboxOption = new CheckboxOption();
+
+    public ParameterMaster parameterMaster = new ParameterMaster();
+    private List<ParameterMaster> lstParameterMasters = new List<ParameterMaster>();
+    int cnt = 0;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await Task.Delay(10000);
+        await GetParameterMaster();
+        parameterMaster.ParameterType = "L";
+        parameterMaster.ShowOnPrint = "Y";
+        parameterMaster.GRN = "B";
+        parameterMaster.ViewOnPo = "Y";
+        parameterMaster.UpDown = "U";
+        await GetStatusMaster();
+        isLoading = false;
+
+    }
+    public async Task GetParameterNameUnique(string Name)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "SELECT count(Name)cnt FROM [@TRIZ_QC_OPAR]  where Name='" + Name + "'";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                cnt = int.Parse(oRs.Fields.Item("cnt").Value.ToString());
+            }
+            else
+            {
+                cnt = 0;
+            }
+        }
+    }
+    public async Task GetParameterMasterUnique(string code)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "SELECT  count(Code)cnt FROM [@TRIZ_QC_OPAR] where Code='" + code + "'";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                cnt = int.Parse(oRs.Fields.Item("cnt").Value.ToString());
+            }
+            else
+            {
+                cnt = 0;
+            }
+        }
+    }
+    public async Task GetParameterMaster()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "SELECT Code, Name, U_ParmType, CASE WHEN U_ParmType = 'L' THEN 'Logical' WHEN U_ParmType = 'N' THEN 'Numerical' ELSE U_ParmType END AS U_ParmType1, U_StdText, U_ShowOnPrint, CASE WHEN U_ShowOnPrint = 'Y' THEN 'Yes' WHEN U_ShowOnPrint = 'N' THEN 'No' ELSE U_ShowOnPrint END AS U_ShowOnPrint1, U_ABGRN, CASE WHEN U_ABGRN = 'A' THEN 'After' WHEN U_ABGRN = 'B' THEN 'Before' When U_ABGRN='N' THEN 'None' ELSE U_ABGRN END AS U_ABGRN1, U_ShowOnPO, CASE WHEN U_ShowOnPO = 'Y' THEN 'Yes' WHEN U_ShowOnPO = 'N' THEN 'No' ELSE U_ShowOnPO END AS U_ShowOnPO1, U_Active, U_UpDown, CASE WHEN U_UpDown = 'U' THEN 'Upward' WHEN U_UpDown = 'D' THEN 'Downward' When U_UpDown = 'N' THEN 'None' ELSE U_UpDown END AS U_UpDown1 FROM [@TRIZ_QC_OPAR]";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstParameterMasters.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ParameterMaster
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            Description = oRs.Fields.Item("Name").Value.ToString(),
+                            ParameterType = oRs.Fields.Item("U_ParmType").Value.ToString(),
+                            ParameterType1 = oRs.Fields.Item("U_ParmType1").Value.ToString(),
+                            StdText = oRs.Fields.Item("U_StdText").Value.ToString(),
+                            ShowOnPrint = oRs.Fields.Item("U_ShowOnPrint").Value.ToString(),
+                            ShowOnPrint1 = oRs.Fields.Item("U_ShowOnPrint1").Value.ToString(),
+                            GRN = oRs.Fields.Item("U_ABGRN").Value.ToString(),
+                            GRN1 = oRs.Fields.Item("U_ABGRN1").Value.ToString(),
+                            ViewOnPo = oRs.Fields.Item("U_ShowOnPO").Value.ToString(),
+                            ViewOnPo1 = oRs.Fields.Item("U_ShowOnPO1").Value.ToString(),
+                            strActive = oRs.Fields.Item("U_Active").Value.ToString(),
+                            UpDown = oRs.Fields.Item("U_UpDown").Value.ToString(),
+                            UpDown1 = oRs.Fields.Item("U_UpDown1").Value.ToString()
+                        };
+
+                    lstParameterMasters.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+        }
+    }
+
+    protected async Task GetStatusMaster()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+            string strSql = "Select Code,Name From [@Triz_QC_OSTA]";
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstCheckboxOptions.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new CheckboxOption
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            Name = oRs.Fields.Item("Name").Value.ToString(),
+                            IsSelected = false
+                        };
+                    lstCheckboxOptions.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+        }
+    }
+
+
+    private void EditData(ParameterMaster data)
+    {
+        isEditMode = true;
+        parameterMaster.Id = data.Id;
+        parameterMaster.Code = data.Code;
+        parameterMaster.Description = data.Description;
+        parameterMaster.ParameterType = data.ParameterType;
+        parameterMaster.ShowOnPrint = data.ShowOnPrint;
+        parameterMaster.GRN = data.GRN;
+        parameterMaster.ViewOnPo = data.ViewOnPo;
+        parameterMaster.StdText = data.StdText;
+        parameterMaster.UpDown = data.UpDown;
+        parameterMaster.strActive = data.strActive;
+
+
+        parameterMaster.Active = parameterMaster.strActive == "Y";
+
+
+        if (AppConfig.diCompany != null)
+        {
+            SAPbobsCOM.CompanyService oCompanyService = AppConfig.diCompany.GetCompanyService();
+            SAPbobsCOM.GeneralService oGeneralService = (SAPbobsCOM.GeneralService)oCompanyService.GetGeneralService("TRIZ_QC_OPAR");
+
+            SAPbobsCOM.GeneralDataParams generalDataParams = (SAPbobsCOM.GeneralDataParams)oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralDataParams);
+            generalDataParams.SetProperty("Code", parameterMaster.Code);
+
+            SAPbobsCOM.GeneralData existingData = oGeneralService.GetByParams(generalDataParams);
+
+            if (existingData != null)
+            {
+                var oChildren = existingData.Child("TRIZ_QC_PAR1");
+
+
+                foreach (var option in lstCheckboxOptions)
+                {
+                    option.IsSelected = false;
+                }
+
+
+                for (int i = 0; i < oChildren.Count; i++)
+                {
+                    SAPbobsCOM.GeneralData child = oChildren.Item(i);
+                    string statusCode = child.GetProperty("U_Status").ToString();
+
+                    var checkboxOption = lstCheckboxOptions.FirstOrDefault(c => c.Code == statusCode);
+                    if (checkboxOption != null)
+                    {
+                        checkboxOption.IsSelected = true;
+                    }
+                }
+            }
+        }
+    }
+
+    private async Task InsertParameter()
+    {
+        if (isEditMode == true)
+        {
+            if (AppConfig.diCompany == null)
+            {
+                try
+                {
+                    AppConfig.diCompany = AppConfig.SAPDIConnection();
+                    if (AppConfig.diCompany.Connected == false)
+                    {
+                        int connectionResult = AppConfig.diCompany.Connect();
+                        if (connectionResult != 0)
+                        {
+                            string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                            throw new Exception("Failed to connect to SAP: " + errMsg);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return;
+                }
+            }
+            if (AppConfig.diCompany != null)
+            {
+                string AddUpdateFlag = string.Empty;
+                SAPbobsCOM.GeneralService oGeneralService = null;
+                SAPbobsCOM.GeneralData oGeneralData = null;
+                SAPbobsCOM.GeneralData oChild = null;
+                SAPbobsCOM.GeneralDataCollection oChildren = null;
+                SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+                SAPbobsCOM.CompanyService oCompanyService = null;
+                try
+                {
+                    oCompanyService = AppConfig.diCompany.GetCompanyService();
+                    oGeneralService = (SAPbobsCOM.GeneralService)oCompanyService.GetGeneralService("TRIZ_QC_OPAR");
+
+                    SAPbobsCOM.GeneralDataParams generalDataParams = (SAPbobsCOM.GeneralDataParams)oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralDataParams);
+                    generalDataParams.SetProperty("Code", parameterMaster.Code);
+
+                    SAPbobsCOM.GeneralData existingData = oGeneralService.GetByParams(generalDataParams);
+
+                    if (existingData != null)
+                    {
+                        existingData.SetProperty("Name", parameterMaster.Description);
+                        existingData.SetProperty("U_ParmType", parameterMaster.ParameterType);
+                        if (parameterMaster.UpDown == "U" || parameterMaster.UpDown == "D" || parameterMaster.UpDown == "N")
+                        {
+                            existingData.SetProperty("U_UpDown", parameterMaster.UpDown);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Invalid UpDown value. Please select 'U' for Upward, 'D' for Downward, or 'N' for None.");
+                            return;
+                        }
+                        existingData.SetProperty("U_StdText", parameterMaster.StdText);
+                        existingData.SetProperty("U_ShowOnPrint", parameterMaster.ShowOnPrint);
+
+                        if (parameterMaster.GRN == "A" || parameterMaster.GRN == "B" || parameterMaster.GRN == "N")
+                        {
+                            existingData.SetProperty("U_ABGRN", parameterMaster.GRN);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Invalid GRN value. Please select 'A' for After, 'B' for Before, or 'N' for None.");
+                            return;
+                        }
+                        existingData.SetProperty("U_ShowOnPO", parameterMaster.ViewOnPo);
+                        existingData.SetProperty("U_Active", parameterMaster.Active ? "Y" : "N");
+
+                        oChildren = existingData.Child("TRIZ_QC_PAR1");
+
+                        for (int i = oChildren.Count - 1; i >= 0; i--)
+                        {
+                            oChildren.Remove(i);
+                        }
+                        foreach (var checkboxOption in lstCheckboxOptions)
+                        {
+                            if (checkboxOption.IsSelected)
+                            {
+                                SAPbobsCOM.GeneralData child = oChildren.Add();
+                                child.SetProperty("U_Status", checkboxOption.Code);
+                            }
+                        }
+                        oGeneralService.Update(existingData);
+                        await JsRuntime.InvokeVoidAsync("alert", "Data updated successfully");
+                        await GetParameterMaster();
+                        StateHasChanged();
+                        ResetForm();
+                    }
+                    else
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Record not found for updating.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                    await JsRuntime.InvokeVoidAsync("alert", "Error occurred: " + sapError);
+                }
+            }
+        }
+        else if (isEditMode == false)
+        {
+            if (AppConfig.diCompany == null)
+            {
+                try
+                {
+                    AppConfig.diCompany = AppConfig.SAPDIConnection();
+                    if (AppConfig.diCompany.Connected == false)
+                    {
+                        int connectionResult = AppConfig.diCompany.Connect();
+                        if (connectionResult != 0)
+                        {
+                            string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                            throw new Exception("Failed to connect to SAP: " + errMsg);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return;
+                }
+            }
+            if (AppConfig.diCompany != null)
+            {
+                string AddUpdateFlag = string.Empty;
+                SAPbobsCOM.GeneralService oGeneralService = null;
+                SAPbobsCOM.GeneralData oGeneralData = null;
+                SAPbobsCOM.GeneralData oChild = null;
+                SAPbobsCOM.GeneralDataCollection oChildren = null;
+                SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+                SAPbobsCOM.CompanyService oCompanyService = null;
+
+                try
+                {
+                    oCompanyService = AppConfig.diCompany.GetCompanyService();
+                    oGeneralService = oCompanyService.GetGeneralService("TRIZ_QC_OPAR");
+                    oGeneralData = ((SAPbobsCOM.GeneralData)(oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralData)));
+                    if (parameterMaster.Code == string.Empty || parameterMaster.Code == null)
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Insert Item Code");
+                        return;
+                    }
+                    else
+                    {
+                        await GetParameterMasterUnique(parameterMaster.Code);
+                        if (cnt == 0)
+                        {
+                            oGeneralData.SetProperty("Code", parameterMaster.Code);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Code Already Exist");
+                            return;
+                        }
+
+                    }
+                    if (parameterMaster.Description == string.Empty || parameterMaster.Description == null)
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Insert Item Description");
+                        return;
+                    }
+                    else
+                    {
+                        await GetParameterNameUnique(parameterMaster.Description);
+                        if (cnt == 0)
+                        {
+                            oGeneralData.SetProperty("Name", parameterMaster.Description);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Description Already Exist");
+                            return;
+                        }
+
+                    }
+                    oGeneralData.SetProperty("U_ParmType", parameterMaster.ParameterType);
+                    if (parameterMaster.UpDown == "U" || parameterMaster.UpDown == "D" || parameterMaster.UpDown == "N")
+                    {
+                        oGeneralData.SetProperty("U_UpDown", parameterMaster.UpDown);
+                    }
+                    else
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Invalid UpDown value. Please select 'U' for Upward or 'D' for Downward.");
+                        return;
+                    }
+
+
+                    if (parameterMaster.StdText == string.Empty || parameterMaster.StdText == null)
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Insert StdText");
+                        return;
+                    }
+                    else
+                    {
+                        oGeneralData.SetProperty("U_StdText", parameterMaster.StdText);
+                    }
+
+                    oGeneralData.SetProperty("U_ShowOnPrint", parameterMaster.ShowOnPrint);
+                    if (parameterMaster.GRN == "A" || parameterMaster.GRN == "B" || parameterMaster.UpDown == "N")
+                    {
+                        oGeneralData.SetProperty("U_ABGRN", parameterMaster.GRN);
+                    }
+                    else
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Invalid GRN value. Please select 'A' for After or 'B' for Before.");
+                        return;
+                    }
+                    oGeneralData.SetProperty("U_ShowOnPO", parameterMaster.ViewOnPo);
+                    bool Active = parameterMaster.Active;
+                    if (Active)
+                    {
+                        oGeneralData.SetProperty("U_Active", "Y");
+                    }
+                    else
+                    {
+                        oGeneralData.SetProperty("U_Active", "N");
+                    }
+                    oChildren = oGeneralData.Child("TRIZ_QC_PAR1");
+                    for (int i = 0; i < lstCheckboxOptions.Count; i++)
+                    {
+                        if (lstCheckboxOptions[i].IsSelected == true)
+                        {
+                            oChild = oChildren.Add();
+                            oChild.SetProperty("U_Status", lstCheckboxOptions[i].Code);
+                        }
+                    }
+                    oGeneralParams = oGeneralService.Add(oGeneralData);
+                    string Result = System.Convert.ToString(oGeneralParams.GetProperty("Code"));
+
+                    await JsRuntime.InvokeVoidAsync("alert", "Data Saves successfully");
+
+                    await GetParameterMaster();
+                    StateHasChanged();
+                    ResetForm();
+                }
+                catch (Exception ex)
+                {
+                    string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                    //throw new Exception("Error getting General Service: " + sapError);
+
+                    await JsRuntime.InvokeVoidAsync("alert", "Error Occured" + sapError);
+                }
+
+            }
+        }
+
+
+    }
+    private void ResetForm()
+    {
+        parameterMaster = new ParameterMaster();
+        isEditMode = false;
+        //lstItemParameters = new List<ItemParameter>();
+    }
+
+    private async Task AddParameterMaster()
+    {
+
+
+        await InsertParameter();
+
+
+    }
+
+    private void Close()
+    {
+        parameterMaster.Code = string.Empty;
+        parameterMaster.Description = string.Empty;
+        parameterMaster.StdText = string.Empty;
+        parameterMaster.Active = false;
+        parameterMaster.ParameterType = "L";
+        parameterMaster.ShowOnPrint = "Y";
+        parameterMaster.GRN = "B";
+        parameterMaster.ViewOnPo = "Y";
+        parameterMaster.UpDown = "U";
+        foreach (var option in lstCheckboxOptions)
+        {
+            option.IsSelected = false;
+        }
+        isEditMode = false;
+    }
+
+}

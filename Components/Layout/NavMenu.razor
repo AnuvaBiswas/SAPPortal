@@ -1,0 +1,264 @@
+﻿@* @page "/" *@
+@using SAPPortal.Components.Services
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager NavigationManager
+@using SAPPortal.Models;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms;
+@using Microsoft.EntityFrameworkCore;
+@inject HttpClient Http;
+@inject IJSRuntime JsRuntime;
+@inject ApplicationDbContext _dbContext;
+@rendermode InteractiveServer
+@inject SessionService SessionService
+
+
+@* <div class="container-fluid top-row">
+    <div style="padding: 14px 0; text-align: center;" class="navbar navbar-dark">
+        <a style="margin: 0; color: yellow;" class="navbar-brand" href="">SAP Portal</a>
+        <button @onclick="DelayedSendAsync" style="background-color: darkcyan; color: white; border: none; padding: 8px 16px; font-size: 0.9rem; border-radius: 4px;">
+            Refresh
+        </button>
+    </div>
+</div>
+
+<div style="height: 100vh; overflow-y: auto; padding: 10px;  scrollbar-width: thin; border-right: 1px solid #ddd;">
+    <nav class="flex-column">
+        @if (CommonSessionClass.menuStructData != null && CommonSessionClass.menuStructData.Any())
+        {
+            @foreach (var menu in CommonSessionClass.menuStructData.Where(m => m.Depth == 0 && (m.Description == "Administration" || m.Description == "Quality Control")))
+            {
+                <div class="nav-item px-3">
+                    <button class="btn btn-link" @onclick="() => ToggleFirstLevel(menu.ModuleId)">
+                        <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                        @menu.Description
+                    </button>
+                    @if (IsFirstLevelExpanded(menu.ModuleId))
+                    {
+                        <div style="padding-left: 20px; margin-top: 4px;">
+                            @foreach (var menu1 in CommonSessionClass.menuStructData.Where(m => m.Depth == 1 && m.ModuleId == menu.ModuleId &&
+                           (m.Description == "Master1" || m.Description == "Master" || m.Description == "Transaction" || m.Description == "Report")))
+                            {
+                                <button class="btn btn-link" @onclick="() => ToggleSecondLevel(menu1.MenuId)">
+                                    <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                                    @menu1.Description
+                                </button>
+                                @if (IsSecondLevelExpanded(menu1.MenuId))
+                                {
+                                    <div style="padding-left: 20px; margin-top: 4px;">
+                                        @foreach (var menu2 in CommonSessionClass.menuStructData.Where(m => m.Depth == 2 && m.ParentId == menu1.MenuId))
+                                        {
+                                            <NavLink class="nav-link" href="@menu2.URL" style="color: #777; font-size: 0.9rem;">
+                                                <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                                                @menu2.Description
+                                            </NavLink>
+                                        }
+                                    </div>
+                                }
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </nav>
+</div> *@
+
+
+
+
+<div class="container-fluid top-row">
+    <div style="padding: 14px 0; text-align: center;" class="navbar navbar-dark">
+        <a style="margin: 0; color: yellow;" class="navbar-brand" href="">SAP Portal</a>
+        @* <button @onclick="DelayedSendAsync" style="background-color: darkcyan; color: white; border: none; padding: 8px 16px; font-size: 0.9rem; border-radius: 4px;">
+        Refresh
+        </button> *@
+    </div>
+</div>
+
+<div style="height: 100vh; overflow-y: auto; padding: 10px; scrollbar-width: thin; border-right: 1px solid #ddd;">
+    <nav class="flex-column">
+        @if (CommonSessionClass.menuStructData != null && CommonSessionClass.menuStructData.Any())
+        {
+            @foreach (var menu in CommonSessionClass.menuStructData.Where(m => m.Depth == 0 && (m.Description == "Administration" || m.Description == "Quality Control")))
+            {
+                <div class="nav-item px-3">
+                    <button class="btn btn-link" @onclick="() => ToggleFirstLevel(menu.ModId)">
+                        <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                        @menu.Description
+                    </button>
+                    @if (IsFirstLevelExpanded(menu.ModId))
+                    {
+
+                        <div class="d-flex flex-column" style="padding-left: 10px; margin-top: 4px;">
+                            @foreach (var menu1 in CommonSessionClass.menuStructData.Where(m => m.Depth == 1 && m.ModId == menu.ModId &&
+                           (m.ParentId == 0)
+                                                                                                                                                          @* (m.Description == "Master1" || m.Description == "Master" || m.Description == "Transaction" || m.Description == "Reports") *@))
+                            {
+                                <!-- Wrapper with balanced left and right padding -->
+                                <div class="menu-item-wrapper" style="padding-left: 20px; padding-right: 20px; margin-top: 4px;">
+                                    <button class="btn btn-link" @onclick="() => ToggleSecondLevel(menu1.MenuId)">
+                                        <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                                        @menu1.Description
+                                    </button>
+                                    @if (IsSecondLevelExpanded(menu1.MenuId))
+                                    {
+                                        <div class="d-flex flex-column" style="padding-left: 20px; margin-top: 4px;">
+                                            @foreach (var menu2 in CommonSessionClass.menuStructData.Where(m => m.Depth == 2 && m.ParentId == menu1.MenuId))
+                                            {
+                                                <NavLink class="nav-link" href="@menu2.URL" style="color: #777; font-size: 0.9rem; color: #777; line-height: 1.5rem;">
+                                                    <span class="oi oi-list-rich" style="font-size: small; margin-right: 8px;" aria-hidden="true"></span>
+                                                    @menu2.Description
+                                                </NavLink>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+
+                    }
+                </div>
+            }
+        }
+    </nav>
+</div>
+
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.7.2/font/bootstrap-icons.min.css">
+
+
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popperjs/core@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+@* <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var navScrollable = document.querySelector('.nav-scrollable nav');
+        var navContainer = document.querySelector('.nav-scrollable');
+
+        navContainer.addEventListener('mouseenter', function () {
+            navScrollable.style.overflowY = 'scroll';
+        });
+
+        navContainer.addEventListener('mouseleave', function () {
+            navScrollable.style.overflowY = 'hidden';
+        });
+    });
+
+</script> *@
+
+@code {
+    public List<M_MENU> allowedMenus;
+    private async Task PreventCollapse(MouseEventArgs e, string elementId)
+    {
+        await JsRuntime.InvokeVoidAsync("preventCollapse", elementId);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(1000);
+
+    }
+    @*   private async Task LoadAllowedMenus()
+    {
+        if (CommonSessionClass.allowedMenus == null || !CommonSessionClass.allowedMenus.Any())
+        {
+            CommonSessionClass.allowedMenus = await FetchAllowedMenusAsync();
+        }
+        allowedMenus = CommonSessionClass.allowedMenus;
+        StateHasChanged();
+    }
+
+    private async Task<List<M_MENU>> FetchAllowedMenusAsync()
+    {
+        int userId = string.IsNullOrEmpty(CommonSessionClass.UId) ? 0 : int.Parse(CommonSessionClass.UId);
+        return await _dbContext.MenuMapUsers
+            .Where(m => m.UserId == userId && m.IsAccessable == 'Y')
+            .Select(m => new M_MENU { Description = m.Description })
+            .ToListAsync();
+    } *@
+
+    private async Task DelayedSendAsync()
+    {
+        await Task.Delay(1000);
+
+    }
+
+
+    private HashSet<int> expandedFirstLevelMenus = new HashSet<int>();
+    private HashSet<int> expandedSecondLevelMenus = new HashSet<int>();
+
+    private void ToggleFirstLevel(int moduleId)
+    {
+        if (expandedFirstLevelMenus.Contains(moduleId))
+        {
+            expandedFirstLevelMenus.Remove(moduleId);
+        }
+        else
+        {
+            expandedFirstLevelMenus.Add(moduleId);
+        }
+    }
+
+    private bool IsFirstLevelExpanded(int moduleId) => expandedFirstLevelMenus.Contains(moduleId);
+
+    private void ToggleSecondLevel(int menuId)
+    {
+        if (expandedSecondLevelMenus.Contains(menuId))
+        {
+            expandedSecondLevelMenus.Remove(menuId);
+        }
+        else
+        {
+            expandedSecondLevelMenus.Add(menuId);
+        }
+    }
+
+    private bool IsSecondLevelExpanded(int menuId) => expandedSecondLevelMenus.Contains(menuId);
+
+
+
+    #region try later
+    // private RenderFragment RenderMenu(List<MenuStruct>? menuItems, int depth = 0, int? parentId = null) => builder =>
+    // {
+    //        if (menuItems == null)
+    //        {
+    //            return;
+    //        }
+
+    //        var currentItems = menuItems.Where(m => m.Depth == depth && m.ParentId == parentId).ToList();
+
+    //        int seq = 0;
+    //        foreach (var menu in currentItems)
+    //        {
+    //            builder.OpenElement(seq++, "div");
+    //            builder.AddAttribute(seq++, "class", "nav-item px-3");
+
+    //            builder.OpenComponent<NavLink>(seq++);
+    //            builder.AddAttribute(seq++, "class", "nav-link");
+    //            builder.AddAttribute(seq++, "href", menu.URL);
+    //            builder.AddContent(seq++, menu.Description);
+    //            builder.CloseComponent();
+
+    //            var childItems = menuItems.Where(m => m.Depth == depth + 1 && m.ParentId == menu.MenuId).ToList();
+    //            if (childItems.Any())
+    //            {
+    //                builder.OpenElement(seq++, "div");
+    //                builder.AddAttribute(seq++, "class", "nav-item px-3");
+    //                builder.AddContent(seq++, RenderMenu(menuItems, depth + 1, menu.MenuId));
+    //                builder.CloseElement();
+        //            }
+
+    //            builder.CloseElement();
+    //        }
+    // };
+    //  @RenderMenu(CommonSessionClass.menuStructData)
+    #endregion
+}
+}

@@ -1,0 +1,340 @@
+﻿@page "/userGroupPage"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Models;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject ApplicationDbContext _dbContext
+@rendermode InteractiveServer
+@inject IHttpContextAccessor HttpContextAccessor
+@using System.ComponentModel.DataAnnotations
+
+
+@* <component type="typeof(UsersComponent)" render-mode="Server" />
+ *@
+ <PageTitle>User Group</PageTitle>
+
+<h3>User Group</h3>
+
+<EditForm Model="@userGroup" OnValidSubmit="AddUserGroup" FormName="myForm11">
+
+<div class="row">
+
+        <div class="col-8">
+            <label for="CompanyCode">Company</label>
+            <select id="companyCodeId" class="form-control" @bind="userGroup.CompanyCode">
+                <option value=""> Select your Company </option>
+                @foreach (var companyC in lstCompanyDetails)
+                {
+                    <option value="@companyC.CompanyId">@companyC.CompanyName</option>
+                }
+            </select>
+        </div>
+
+    <div class="col-8">
+        <label for="GroupName">Group Name</label>
+        <div class="form-group col-md-3">
+            <InputText @bind-Value="userGroup.GroupName" class="form-control" />
+        </div>
+    </div>
+
+    <div class="col-8">
+        <label for="ParentGroup">Parent Group</label>
+        <select id="userGroupId" class="form-control" @bind="userGroup.ParentGroup">
+            <option value=""> Select a Parent Group</option>
+            @foreach (var parntGroup in lstUserGroup)
+            {
+                <option @onchange="fillUserGroup1" value="@parntGroup.GroupId">@parntGroup.GroupName</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-8">
+        <label for="isActive">Is Active</label>
+        <div class="form-group col-md-3">
+                <input type="checkbox" @bind="@isActive" />
+        </div>
+    </div>
+    <div class="col-md-4 mt-3">
+         <div class="mt-3">
+            <button type="submit" class="btn btn-primary">@ButtonTitle</button>
+         <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+        </div>
+    </div>
+</div>
+</EditForm>
+<br />
+<div class="container-fluid">
+    @if (lstUserGroup == null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        <table class="table table-striped align-middle table-bordered text-center">
+            <thead class="table-success">
+                <tr>
+                    <th>Id</th>
+                    <th>Group Name</th>
+                    <th>Parent Group</th>
+                    <th>Is Active</th>
+                    <th>Created By</th>
+                    <th>Created On</th>
+                    <th>Company Code</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sc in lstUserGroup)
+                {
+                    <tr>
+                        <td>@sc.GroupId</td>
+                        <td>@sc.GroupName</td>
+                        <td>
+                            @lstUserGroup.Where(m => m.GroupId == sc.ParentGroup).FirstOrDefault()?.GroupName
+                        </td>
+                        <td>@sc.IsActive</td>
+                        <td>@CommonSessionClass.UName</td>
+                        <td>@sc.CreatedOn</td>
+                        <td>@lstCompanyDetails.Where(m=>m.CompanyId==sc.CompanyCode).FirstOrDefault()?.CompanyName</td>
+                       
+                        <td>
+                            <button class="btn btn-outline-danger" @onclick="() => EditData(sc)">Edit</button>
+                        </td>
+                        
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    protected M_USERGROUP userGroup = new M_USERGROUP();
+    protected M_USERGROUP newUserGroup = new M_USERGROUP();
+    protected List<M_USERGROUP> lstUserGroup = new List<M_USERGROUP>();
+    protected List<M_USERGROUP> lstUserGroup1 = new List<M_USERGROUP>();
+    public static M_COMPANY companyDetails = new M_COMPANY();
+    protected List<M_COMPANY> lstCompanyDetails = new List<M_COMPANY>();
+    public static string groupName = string.Empty;
+    public static int? parentGroup;
+    public static bool? isActive = false;
+    string searchTerm = string.Empty;
+    private int groupId = 0;
+    public string? ButtonTitle { get; set; }
+    // Property to bind to the checkbox (boolean conversion)
+    private bool IsActiveChecked
+    {
+        get => userGroup.IsActive == 'Y';
+        set => userGroup.IsActive = value ? 'Y' : (char?) 'N'; //(char?)null; // Default to null for "unchecked"
+    }
+
+    
+    private async void AddUserGroup()
+    {
+        try
+        {
+            lstUserGroup1 = _dbContext.AS_M_USERGROUP
+                .Where(u => u.GroupId == userGroup.GroupId)
+                .ToList();
+
+            if (lstUserGroup1.Count>0)
+            {
+                var existingUserGroup = _dbContext.AS_M_USERGROUP.Find(userGroup.GroupId);
+                if (existingUserGroup!=null)
+                {
+                    existingUserGroup.GroupId = userGroup.GroupId;
+                    existingUserGroup.GroupName = userGroup.GroupName;
+                    existingUserGroup.ParentGroup = userGroup.ParentGroup;
+                    if (isActive == true)
+                    {
+                        existingUserGroup.IsActive = 'Y';
+                    }
+                    else
+                    {
+                        existingUserGroup.IsActive = 'N';
+                    }
+                    existingUserGroup.CreatedBy = Convert.ToInt32(CommonSessionClass.UId);
+                    existingUserGroup.CreatedOn = DateTime.Now;
+                    existingUserGroup.CompanyCode = userGroup.CompanyCode;
+
+                    _dbContext.AS_M_USERGROUP.Update(existingUserGroup);
+                    await _dbContext.SaveChangesAsync();
+                    await JsRuntime.InvokeVoidAsync("alert", "Data Updated successfully");
+                    await GetUserGroup();
+                    StateHasChanged();
+                    ResetForm();
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "User not found.");
+                }
+
+            }
+            else
+            {
+                newUserGroup.GroupName = userGroup.GroupName;
+                newUserGroup.ParentGroup = userGroup.ParentGroup;
+                newUserGroup.CreatedBy = Convert.ToInt32(CommonSessionClass.UId);
+                newUserGroup.CreatedOn = DateTime.Now;
+                newUserGroup.CompanyCode = userGroup.CompanyCode;
+                if (isActive==true)
+                {
+                    newUserGroup.IsActive = 'Y';
+                }
+                else
+                {
+                    newUserGroup.IsActive = 'N';
+                }
+                _dbContext.AS_M_USERGROUP.Add(newUserGroup);
+                _dbContext.SaveChangesAsync();
+                JsRuntime.InvokeVoidAsync("alert", "Data saved successfully");
+                await GetUserGroup();
+                StateHasChanged();
+                ResetForm();
+
+
+            }
+
+        }
+        catch (System.Data.SqlTypes.SqlNullValueException sqlNullEx)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Null value encountered: {sqlNullEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error updating data: {ex.Message}");
+        }
+    }
+
+    protected async Task GetUserGroup()
+    {
+
+        lstUserGroup = await _dbContext.AS_M_USERGROUP
+            .Select(c => new M_USERGROUP
+                {
+                    GroupId=c.GroupId,
+                    GroupName=c.GroupName,
+                    ParentGroup=c.ParentGroup,
+                    IsActive=c.IsActive,
+                    CreatedBy = Convert.ToInt32(CommonSessionClass.UId),
+                    CreatedOn=DateTime.Now,
+                    CompanyCode=c.CompanyCode
+
+                })
+            .ToListAsync();
+
+    }
+
+    private void fillUserGroup1(ChangeEventArgs e)
+    {
+        if (userGroup.GroupId > 0)
+        {
+            searchTerm = e.Value.ToString();
+            var result = _dbContext.AS_M_USERGROUP
+                .Where(u => u.GroupId.ToString() == searchTerm)
+                .ToList();
+            if (result.Any())
+            {
+                userGroup.GroupName = result.First().GroupName;
+                int grpId= result.First().GroupId;
+            }
+        }
+    }
+
+    // private bool isRedirected = false;
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     Console.WriteLine("OnInitializedAsync called");
+
+    //     // Your logic to load data here
+    //             lstUserGroup = await _dbContext.AS_M_USERGROUP
+    //                .Select(c => new M_USERGROUP { GroupId = c.GroupId, GroupName = c.GroupName,ParentGroup=c.ParentGroup,
+    //                    IsActive=c.IsActive,CreatedBy=c.CreatedBy,CreatedOn=c.CreatedOn,CompanyCode=c.CompanyCode})
+    //                .ToListAsync();
+
+
+    //             lstCompanyDetails = await _dbContext.AS_M_COMPANY.ToListAsync();
+
+    //           // ButtonTitle = "Save";
+
+    // }
+
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender)
+    //     {
+    //         Console.WriteLine("OnAfterRenderAsync called");
+    //     }
+    //     if (firstRender && string.IsNullOrEmpty(CommonSessionClass.UName) && !isRedirected)
+    //     {
+    //         NavigationManager.NavigateTo("/loginPage");
+    //         isRedirected = true;
+    //     }
+    // }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(CommonSessionClass.UName))
+        {
+            Console.WriteLine("OnAfterRenderAsync called");
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+            Console.WriteLine("OnInitializedAsync called");
+            lstUserGroup = await _dbContext.AS_M_USERGROUP
+               .Select(c => new M_USERGROUP { GroupId = c.GroupId, GroupName = c.GroupName,ParentGroup=c.ParentGroup,
+                   IsActive=c.IsActive,CreatedBy=c.CreatedBy,CreatedOn=c.CreatedOn,CompanyCode=c.CompanyCode})
+               .ToListAsync();
+
+
+            lstCompanyDetails = await _dbContext.AS_M_COMPANY.ToListAsync();
+
+            ButtonTitle = "Save";
+        }
+    }
+
+
+    private void ResetForm()
+    {
+        ButtonTitle = "Save";
+        userGroup = new M_USERGROUP();
+        StateHasChanged();
+
+    }
+
+    private void Cancel()
+    {
+        userGroup.GroupName = string.Empty;
+        userGroup.IsActive = null;
+        StateHasChanged();
+    }
+
+    private void EditData(M_USERGROUP data)
+    {
+        userGroup.GroupId = data.GroupId;
+        userGroup.GroupName = data.GroupName;
+        userGroup.ParentGroup = data.ParentGroup;
+        userGroup.CreatedBy = data.CreatedBy;
+        userGroup.CreatedOn = data.CreatedOn;
+        userGroup.IsActive = data.IsActive;
+        if(userGroup.IsActive=='Y')
+        {
+            isActive = true;
+        }
+        else
+        {
+            isActive = false;
+        }
+        userGroup.CompanyCode = data.CompanyCode;
+
+        ButtonTitle = "Update";
+       
+    }
+
+
+}

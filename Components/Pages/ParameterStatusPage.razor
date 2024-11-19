@@ -1,0 +1,351 @@
+﻿@page "/parameterStatus"
+@inject NavigationManager NavigationManager
+@using SAPPortal.Components.Services
+@using SAPPortal.Models;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
+@inject HttpClient Http
+@inject IJSRuntime JsRuntime
+@inject ApplicationDbContext _dbContext
+@rendermode InteractiveServer
+@inject IHttpContextAccessor HttpContextAccessor
+@inject SAPConnection AppConfig
+@inject IServiceScopeFactory ServiceScopeFactory;
+
+<PageTitle>Parameter Status</PageTitle>
+
+<h3>Parameter Status</h3>
+ <EditForm Model="@paramStatus" OnValidSubmit="AddParameterStatus" FormName="form1">
+        <DataAnnotationsValidator />
+
+<div class="row">
+    <div class="col-8">
+        <label for="Code">Code</label>
+        <div class="form-group col-md-3">
+                <InputText @bind-Value="paramStatus.Code" class="form-control" disabled="@isEditMode" />
+               
+        </div>
+    </div>
+    <div class="col-8">
+        <label for="Code">Name</label>
+        <div class="form-group col-md-3">
+            <InputText @bind-Value="paramStatus.Name" class="form-control" />
+        </div>
+    </div>
+    <div class="col-md-4 mt-3">
+        <div class="mt-3">
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Save</button>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                </div>
+        </div>
+    </div>
+   
+    </div>
+</EditForm>
+     <br />
+    <div class="container-fluid">
+    <table class="table table-striped align-middle table-bordered text-center">
+            <thead class="table-success">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var sc in lstParamStatus)
+                {
+                    <tr>
+                        <td>@sc.Code</td>
+                        <td>@sc.Name</td>
+
+                        <td>
+                            <button class="btn btn-outline-danger" @onclick="() => EditData(sc)">Edit</button>
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+            </table>
+    </div>
+  
+
+@code {
+    protected ParameterStatus paramStatus = new ParameterStatus();
+    protected List<ParameterStatus> lstParamStatus = new List<ParameterStatus>();
+    public string? ButtonTitle { get; set; }
+    private bool isEditMode = false;
+    int cnt = 0;
+    public bool isLoading { get; set; } = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(CommonSessionClass.UName))
+        {
+            NavigationManager.NavigateTo("/loginPage", true);
+        }
+        else
+        {
+            isLoading = true;
+            await GetParameterStatus();
+            isLoading = false;
+            ButtonTitle = "Save";
+
+        }
+    }
+
+    private async Task AddParameterStatus()
+    {
+        await InsertParameter();
+    }
+
+    private async Task InsertParameter()
+    {
+
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+                if (AppConfig.diCompany.Connected == false)
+                {
+                    int connectionResult = AppConfig.diCompany.Connect();
+                    if (connectionResult != 0)
+                    {
+                        string errMsg = AppConfig.diCompany.GetLastErrorDescription();
+                        throw new Exception("Failed to connect to SAP: " + errMsg);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+        else
+        {
+            string AddUpdateFlag = string.Empty;
+            SAPbobsCOM.GeneralService oGeneralService = null;
+            SAPbobsCOM.GeneralData oGeneralData = null;
+            SAPbobsCOM.GeneralData oChild = null;
+            SAPbobsCOM.GeneralDataCollection oChildren = null;
+            SAPbobsCOM.GeneralDataParams oGeneralParams = null;
+            SAPbobsCOM.CompanyService oCompanyService = null;
+            try
+            {
+                oCompanyService = AppConfig.diCompany.GetCompanyService();
+
+                oGeneralService = oCompanyService.GetGeneralService("TRIZ_QC_OSTA");
+                oGeneralData = ((SAPbobsCOM.GeneralData)(oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralData)));
+                if (isEditMode == false)
+                {
+                    if (paramStatus.Code == string.Empty || paramStatus.Code == null)
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Insert Code");
+                        return;
+                    }
+                    else
+                    {
+                        await GetParameterStatusCodeUnique(paramStatus.Code);
+                        if (cnt == 0)
+                        {
+                            oGeneralData.SetProperty("Code", paramStatus.Code);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Code Already Exist");
+                            return;
+                        }
+
+                    }
+                    if (paramStatus.Name == string.Empty || paramStatus.Name == null)
+                    {
+                        await JsRuntime.InvokeVoidAsync("alert", "Insert Name");
+                        return;
+                    }
+                    else
+                    {
+                        await GetParameterStatusNameUnique(paramStatus.Name);
+                        if (cnt == 0)
+                        {
+                            oGeneralData.SetProperty("Name", paramStatus.Name);
+                        }
+                        else
+                        {
+                            await JsRuntime.InvokeVoidAsync("alert", "Name Already Exist");
+                            return;
+                        }
+
+                    }
+
+                    oGeneralParams = oGeneralService.Add(oGeneralData);
+                    string Result = System.Convert.ToString(oGeneralParams.GetProperty("Code"));
+
+                    await JsRuntime.InvokeVoidAsync("alert", "Data Saves successfully");
+
+                    await GetParameterStatus();
+                    StateHasChanged();
+                    ResetForm();
+                }
+                else
+                {
+                    SAPbobsCOM.GeneralDataParams generalDataParams = (SAPbobsCOM.GeneralDataParams)oGeneralService.GetDataInterface(SAPbobsCOM.GeneralServiceDataInterfaces.gsGeneralDataParams);
+                    generalDataParams.SetProperty("Code", paramStatus.Code);
+
+                    SAPbobsCOM.GeneralData existingData = oGeneralService.GetByParams(generalDataParams);
+                    existingData.SetProperty("Name", paramStatus.Name);
+
+                    oGeneralService.Update(existingData);
+                    await JsRuntime.InvokeVoidAsync("alert", "Data updated successfully");
+                    await GetParameterStatus();
+                    StateHasChanged();
+                    ResetForm();
+                   
+
+                }
+            }
+            catch (Exception ex)
+            {
+                string sapError = AppConfig.diCompany.GetLastErrorDescription();
+                await JsRuntime.InvokeVoidAsync("alert", "Error occurred: " + sapError);
+            }
+        }
+    }    
+
+    public async Task GetParameterStatus()
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "Select Code,Name From [@Triz_QC_OSTA]";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                lstParamStatus.Clear();
+
+                while (!oRs.EoF)
+                {
+                    var option = new ParameterStatus
+                        {
+                            Code = oRs.Fields.Item("Code").Value.ToString(),
+                            Name = oRs.Fields.Item("Name").Value.ToString(),
+
+                        };
+
+                    lstParamStatus.Add(option);
+                    oRs.MoveNext();
+                }
+            }
+        }
+    }
+
+    public async Task GetParameterStatusCodeUnique(string code)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "SELECT  count(Code)cnt FROM [@TRIZ_QC_OSTA] where Code='" + code + "'";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                cnt = int.Parse(oRs.Fields.Item("cnt").Value.ToString());
+            }
+            else
+            {
+                cnt = 0;
+            }
+        }
+    }
+
+    public async Task GetParameterStatusNameUnique(string Name)
+    {
+        if (AppConfig.diCompany == null)
+        {
+            try
+            {
+                AppConfig.diCompany = AppConfig.SAPDIConnection();
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+        }
+
+        if (AppConfig.diCompany != null)
+        {
+
+            SAPbobsCOM.Recordset oRs = (SAPbobsCOM.Recordset)AppConfig.diCompany.GetBusinessObject(SAPbobsCOM.BoObjectTypes.BoRecordset);
+
+            string strSql = "SELECT count(Name)cnt FROM [@TRIZ_QC_OSTA]  where Name='" + Name + "'";
+
+            oRs.DoQuery(strSql);
+            if (oRs.RecordCount > 0)
+            {
+                cnt = int.Parse(oRs.Fields.Item("cnt").Value.ToString());
+            }
+            else
+            {
+                cnt = 0;
+            }
+        }
+    }
+
+    private void EditData(ParameterStatus data)
+    {
+        isEditMode = true;
+        paramStatus.Code = data.Code;
+        paramStatus.Name = data.Name;
+
+    }
+
+    private void ResetForm()
+    {
+        isEditMode = false;
+        paramStatus.Code = string.Empty;
+        paramStatus.Name = null;
+        StateHasChanged();
+    }
+
+    private void Cancel()
+    {
+        isEditMode = false;
+        paramStatus.Code = string.Empty;
+        paramStatus.Name = null;
+        StateHasChanged();
+    }
+
+}

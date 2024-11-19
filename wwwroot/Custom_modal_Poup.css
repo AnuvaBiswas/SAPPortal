@@ -1,0 +1,75 @@
+﻿
+/* Modal overlay */
+.modal-overlay{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%!important;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Modal dialog styling */
+.modal-dialog {
+    background-color: white;
+    border-radius: 5px;
+    min-width: 50%;
+    max-width: 80%;
+    padding: 20px;
+}
+
+/* Header styling */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Search box at the top, stays fixed */
+.search-box {
+    margin-bottom: 10px;
+}
+
+/* Scrollable table */
+.scrollable-table {
+    max-height: 300px; /* Set a max height for the scrollable content */
+    overflow-y: auto; /* Enable vertical scrolling */
+}
+
+    /* Ensure the table doesn't overflow horizontally */
+    .scrollable-table table {
+        width: 100%;
+    }
+
+
+.position-relative {
+    position: relative;
+}
+
+.btn-clear {
+    position: absolute;
+    right: 10px; /* Adjust positioning as needed */
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #ccc;
+    padding: 0;
+}
+
+    .btn-clear:hover {
+        color: #000; /* Change color on hover */
+    }
+
+.pr-5 {
+    padding-right: 2.5rem; /* Space for the clear button inside the input */
+}
+
+.btn-clear i {
+    font-size: 1rem; /* Adjust icon size */
+}

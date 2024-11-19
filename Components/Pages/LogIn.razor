@@ -1,0 +1,209 @@
+﻿@page "/LogInPage"
+
+@inject NavigationManager NavigationManager
+@using SAPPortal.Models;
+@using SAPPortal.Components.Services;
+@using System.Net;
+@using Microsoft.AspNetCore.Components.Forms;
+@using Microsoft.EntityFrameworkCore;
+@inject HttpClient Http;
+@inject IJSRuntime JsRuntime;
+@inject ApplicationDbContext _dbContext;
+@rendermode InteractiveServer
+
+
+<div style="background-color: #efefef; border-radius: 12px; height:100%; vertical-align: middle;" class="col-md-4 col-sm-6 p-4 m-auto mt-5">
+    <h3 style="font-weight: 600; font-size: 24px; color: #052767;" class="mb-1">
+        Login
+    </h3>
+    <br/>
+    <EditForm Model="@user" OnValidSubmit="login" FormName="myForm11">
+        <!-- Username Input -->
+        <div class="form-group mb-3">
+            <label style="font-weight: 600; font-size: 16px; margin-bottom: 5px;" class="mb-2" for="username">User Name:</label>
+            <InputText style="background:#ffffff" class="form-control" @bind-Value="user.UserName" />
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group mt-2">
+            <label style="font-weight: 600; font-size: 16px; margin-bottom: 5px;" for="password">Password:</label>
+            <InputText style="background:#ffffff" type="password" class="form-control" @bind-Value="user.PWD" id="password" />
+        </div>
+        <!-- Company Name Dropdown -->
+        <div class="form-group mb-3">
+            <label style="font-weight: 600; font-size: 16px; margin-bottom: 5px;" class="mb-2" for="company">Company Name:</label>
+            <select class="form-control" @bind="cOMPANY.CompanyId">
+                <option value="" disabled selected>Select Company</option>
+                @foreach (var company in companyList)
+                {
+                    <option @onchange="fillCompany" value="@company.CompanyId">@company.CompanyName</option>
+                }
+            </select>
+        </div>
+        <button style="width:100%; background-color: #052767; color: #ffffff; padding: 7px 18px; font-size: 18px;" class="btn mt-3 mb-2">
+            Login
+        </button>
+    </EditForm>
+</div>
+
+
+@code {
+    [Inject]
+    public AuthenticationService? AuthenticationService { get; set; }
+
+    protected M_User user = new M_User();
+    protected M_COMPANY cOMPANY = new M_COMPANY();
+
+    private string username = string.Empty;
+    private string password = string.Empty;
+    string searchTerm = string.Empty;
+
+    private int uid = 0;
+    public List<Menu> allowedMenus;
+    List<MenuStruct> menuStructs;
+    private List<M_COMPANY> companyList = new List<M_COMPANY>();
+    private List<Dictionary<string, object>> menuStructData;
+    private List<Dictionary<string, object>> menuStructData1;
+    private List<Dictionary<string, object>> menuStructData2;
+    private List<string> columnNames = new List<string>();
+
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        companyList = await _dbContext.AS_M_COMPANY.ToListAsync();
+        user.lstCompanies  = companyList;
+
+        CommonSessionClass.menuStructData = await GetMenuStructAsync();
+
+
+
+
+    }
+
+    private void fillCompany(ChangeEventArgs e)
+    {
+        if (cOMPANY.CompanyId > 0)
+        {
+
+            searchTerm = e.Value.ToString();
+            var result = _dbContext.AS_M_COMPANY
+                .Where(u => u.CompanyId.ToString() == searchTerm)
+                .ToList();
+            if (result.Any())
+            {
+                cOMPANY.CompanyName = result.First().CompanyName;
+            }
+
+        }
+    }
+    private async Task login()
+    {
+        if (string.IsNullOrEmpty(user.UserName))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Please Enter User Name");
+            return;
+        }   
+        else if (string.IsNullOrEmpty(user.PWD))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Please Enter Password");
+            return;
+        }
+
+        else if (string.IsNullOrEmpty(user.lstCompanies[0].CompanyName))
+
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Please Select Company");
+            return;
+        }
+        username = user.UserName;
+        password = user.PWD;
+        try
+        {
+            var result = _dbContext.AS_M_Users
+                  .Where(u => u.UserName == username && u.PWD == password)
+                  .Select(u => new { u.UserId, u.UserName, u.SAPId})
+                  .ToList();
+
+            if (result?.Count() > 0)
+            {
+                CommonSessionClass.IsAuthenticated = true;
+
+                CommonSessionClass.UName = result[0].UserName;
+                CommonSessionClass.UId = Convert.ToString(result[0].UserId);
+                CommonSessionClass.SAPId = Convert.ToString(result[0].SAPId);
+                CommonSessionClass.LogInTime = DateTime.Now.ToLocalTime().ToString();
+                // await JsRuntime.InvokeVoidAsync("alert", "Login Successfully");
+              
+
+
+                // CommonSessionClass.allowedMenus = await _dbContext.MenuMapUsers
+                //  .Where(m => m.UserId == result[0].UserId && m.IsAccessable == 'Y')
+                //  .Select(m => new Menu { FormName = m.FormName })
+                //  .ToListAsync();
+
+                await AuthenticationService.GetPermission(CommonSessionClass.UId);
+
+                NavigationManager.NavigateTo("/");
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "User not found.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "An error occurred during login.");
+        }
+    }
+
+    private void logout()
+    {
+        CommonSessionClass.IsAuthenticated = false;
+        CommonSessionClass.UName = string.Empty;
+        CommonSessionClass.UId = string.Empty;
+        CommonSessionClass.CompanyName = string.Empty;
+        CommonSessionClass.LogInTime = string.Empty;
+        NavigationManager.NavigateTo("/LogOut");
+    }
+
+    public async Task<List<MenuStruct>> GetMenuStructAsync()
+    {
+        var results = new List<MenuStruct>();
+
+        using (var command = _dbContext.Database.GetDbConnection().CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM GetMenuStruct()";
+            command.CommandType = System.Data.CommandType.Text;
+            await _dbContext.Database.OpenConnectionAsync();
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+
+                while (await reader.ReadAsync())
+                {
+                    var menuStruct = new MenuStruct
+                        {
+                            MenuText = reader["MenuText"] as string,
+                            Description = reader["Description"] as string,
+                            URL = reader["URL"] as string,
+                            Depth = Convert.ToInt32(reader["Depth"]),
+                            ModId = Convert.ToInt32(reader["ModuleId"]),
+                            MenuId = Convert.ToInt32(reader["MenuId"]),
+                            ParentId = Convert.ToInt32(reader["ParentId"]),
+                            // MenuDisplay = Convert.ToChar(reader["MenuDisplay"]),
+                            DisplayMode = Convert.ToInt32(reader["DisplayMode"])
+                       
+                        };
+
+                    results.Add(menuStruct);
+                }
+            }
+            await _dbContext.Database.CloseConnectionAsync();
+        }
+
+        return results;
+    }
+
+
+}
